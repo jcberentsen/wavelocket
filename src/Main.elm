@@ -4,10 +4,25 @@ import Browser
 import Element exposing (Element, alignRight, el, rgb, row, text)
 import Element.Background as Background
 import Element.Border as Border
+import Json.Encode as E
 import Tuple exposing (first)
 
 
+
+-- outgoing ports
+
+
 port playUri : ( String, Float, Float ) -> Cmd msg
+
+
+port decodeUri : String -> Cmd msg
+
+
+
+-- incoming ports
+
+
+port audioDecoded : (E.Value -> msg) -> Sub msg
 
 
 main =
@@ -36,12 +51,14 @@ reactor =
 
 
 type alias Model =
-    String
+    { uri : String
+    , decodedAudio : E.Value
+    }
 
 
 init : Model -> ( Model, Cmd Msg )
 init waveUri =
-    ( waveUri
+    ( { waveUri = waveUri, decodedAudio = E.null }
     , Cmd.batch [ playUri ( waveUri, 0.5, 1.0 ) ]
     )
 
@@ -51,7 +68,7 @@ init waveUri =
 
 
 subscriptions _ =
-    Sub.none
+    Sub.batch [ audioDecoded AudioDecoded ]
 
 
 
@@ -59,18 +76,20 @@ subscriptions _ =
 
 
 type alias Msg =
-    ()
+    AudioDecoded E.Value
 
 
-update _ m =
-    ( m
-    , Cmd.none
-    )
+update msg m =
+    case msg of
+        AudioDecoded val ->
+            ( { m | decodedAudio = val }
+            , Cmd.none
+            )
 
 
 
 -- View
 
 
-view waveUri =
-    Element.layout [] <| text <| "wavelocket: " ++ waveUri
+view model =
+    Element.layout [] <| text <| "wavelocket: " ++ model.waveUri ++ toString model.decodedAudio
