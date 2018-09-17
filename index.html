@@ -1,0 +1,35 @@
+<!doctype html>
+<html class="no-js" lang="">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title>Untitled</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        <!-- Place favicon.ico in the root directory -->
+        <script type="text/javascript" src="publics/wavelocket.js"></script>
+        <script type="text/javascript" src="src/Native/AudioPlayback.js"></script>
+    </head>
+    <body>
+        <!--[if lt IE 8]>
+            <p class="browserupgrade">
+            You are using an <strong>outdated</strong> browser. Please
+            <a href="http://browsehappy.com/">upgrade your browser</a> to improve
+            your experience.
+            </p>
+        <![endif]-->
+
+    <div id="elm"></div>
+    <script>
+     var app = Elm.Main.init({
+         node: document.getElementById('elm'),
+         flags: "https://jesswong.s3.amazonaws.com/audio_tag/hey_okay_webex_sunrise_1536066047667.wav"
+     });
+
+     registerPorts(app);
+    </script>
+
+    </body>
+</html>

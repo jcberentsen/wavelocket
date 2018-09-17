@@ -1,10 +1,13 @@
-module Main exposing (Msg, init, main, reactor, subscriptions, update, view)
+port module Main exposing (Model, Msg, defaultFlags, init, main, playUri, reactor, subscriptions, update, view)
 
 import Browser
 import Element exposing (Element, alignRight, el, rgb, row, text)
 import Element.Background as Background
 import Element.Border as Border
 import Tuple exposing (first)
+
+
+port playUri : ( String, Int, Int ) -> Cmd msg
 
 
 main =
@@ -39,7 +42,7 @@ type alias Model =
 init : Model -> ( Model, Cmd Msg )
 init waveUri =
     ( waveUri
-    , Cmd.none
+    , Cmd.batch [ playUri ( waveUri, 100, 10000 ) ]
     )
 
 
