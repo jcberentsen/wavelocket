@@ -7,7 +7,7 @@ import Element.Border as Border
 import Tuple exposing (first)
 
 
-port playUri : ( String, Int, Int ) -> Cmd msg
+port playUri : ( String, Float, Float ) -> Cmd msg
 
 
 main =
@@ -42,7 +42,7 @@ type alias Model =
 init : Model -> ( Model, Cmd Msg )
 init waveUri =
     ( waveUri
-    , Cmd.batch [ playUri ( waveUri, 100, 10000 ) ]
+    , Cmd.batch [ playUri ( waveUri, 0.5, 1.0 ) ]
     )
 
 

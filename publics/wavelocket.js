@@ -4804,7 +4804,7 @@ var elm$json$Json$Decode$errorToStringHelp = F2(
 			}
 		}
 	});
-var elm$json$Json$Encode$int = _Json_wrap;
+var elm$json$Json$Encode$float = _Json_wrap;
 var elm$json$Json$Encode$list = F2(
 	function (func, entries) {
 		return _Json_wrap(
@@ -4827,8 +4827,8 @@ var author$project$Main$playUri = _Platform_outgoingPort(
 			_List_fromArray(
 				[
 					elm$json$Json$Encode$string(a),
-					elm$json$Json$Encode$int(b),
-					elm$json$Json$Encode$int(c)
+					elm$json$Json$Encode$float(b),
+					elm$json$Json$Encode$float(c)
 				]));
 	});
 var elm$core$Platform$Cmd$batch = _Platform_batch;
@@ -4839,7 +4839,7 @@ var author$project$Main$init = function (waveUri) {
 			_List_fromArray(
 				[
 					author$project$Main$playUri(
-					_Utils_Tuple3(waveUri, 100, 10000))
+					_Utils_Tuple3(waveUri, 0.5, 1.0))
 				])));
 };
 var elm$core$Platform$Sub$batch = _Platform_batch;
