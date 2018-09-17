@@ -4803,8 +4803,8 @@ var elm$json$Json$Decode$errorToStringHelp = F2(
 	});
 var elm$core$Platform$Cmd$batch = _Platform_batch;
 var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
-var author$project$Main$init = function (_n0) {
-	return _Utils_Tuple2(_Utils_Tuple0, elm$core$Platform$Cmd$none);
+var author$project$Main$init = function (waveUri) {
+	return _Utils_Tuple2(waveUri, elm$core$Platform$Cmd$none);
 };
 var elm$core$Platform$Sub$batch = _Platform_batch;
 var elm$core$Platform$Sub$none = elm$core$Platform$Sub$batch(_List_Nil);
@@ -9987,11 +9987,11 @@ var mdgriffith$elm_ui$Internal$Model$Text = function (a) {
 var mdgriffith$elm_ui$Element$text = function (content) {
 	return mdgriffith$elm_ui$Internal$Model$Text(content);
 };
-var author$project$Main$view = function (_n0) {
+var author$project$Main$view = function (waveUri) {
 	return A2(
 		mdgriffith$elm_ui$Element$layout,
 		_List_Nil,
-		mdgriffith$elm_ui$Element$text('wavelocket'));
+		mdgriffith$elm_ui$Element$text('wavelocket: ' + waveUri));
 };
 var elm$browser$Browser$External = function (a) {
 	return {$: 'External', a: a};
@@ -10220,7 +10220,7 @@ var elm$url$Url$fromString = function (str) {
 		A2(elm$core$String$dropLeft, 8, str)) : elm$core$Maybe$Nothing);
 };
 var elm$browser$Browser$element = _Browser_element;
+var elm$json$Json$Decode$string = _Json_decodeString;
 var author$project$Main$main = elm$browser$Browser$element(
 	{init: author$project$Main$init, subscriptions: author$project$Main$subscriptions, update: author$project$Main$update, view: author$project$Main$view});
-_Platform_export({'Main':{'init':author$project$Main$main(
-	elm$json$Json$Decode$succeed(_Utils_Tuple0))(0)}});}(this));
+_Platform_export({'Main':{'init':author$project$Main$main(elm$json$Json$Decode$string)(0)}});}(this));

@@ -19,9 +19,13 @@ main =
 -- Init
 
 
-init : () -> ( (), Cmd Msg )
-init _ =
-    ( ()
+type alias Model =
+    String
+
+
+init : Model -> ( Model, Cmd Msg )
+init waveUri =
+    ( waveUri
     , Cmd.none
     )
 
@@ -52,5 +56,5 @@ update _ m =
 -- View
 
 
-view _ =
-    Element.layout [] <| text "wavelocket"
+view waveUri =
+    Element.layout [] <| text <| "wavelocket: " ++ waveUri
