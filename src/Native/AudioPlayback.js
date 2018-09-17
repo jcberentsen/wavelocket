@@ -10,8 +10,6 @@ function once(fn, context) {
     };
 }
 
-var audioInput;
-
 var connectAudioOnce = once(function () {
   var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   return audioCtx;
@@ -35,6 +33,14 @@ function withLoadSound(url, callback) {
     }, onError);
   }
   request.send();
+}
+
+function decodeUri(replyTo, audioUri)
+{
+    withLoadSound(audioUri, function (buffer) {
+        console.log("Decoded audio of length " + buffer.length)
+        replyTo.send(buffer);
+    });
 }
 
 function doPlayUri(audioUri, startSec, lenSec) {
@@ -69,7 +75,12 @@ function fillBuffer(buf, start, len, fromBuffer)
 
 function registerPorts(app)
 {
-    var play = function(arg) { doPlayUri(arg[0], arg[1], arg[2]); };
-    app.ports.playUri.subscribe(play);
-}
+    // var play = function(arg) { doPlayUri(arg[0], arg[1], arg[2]); };
+    // app.ports.playUri.subscribe(play);
 
+    var audioDecode = function(arg) { decodeUri(app.ports.audioDecoded, arg); };
+    app.ports.decodeUri.subscribe(audioDecode);
+
+    var play = function(arg) { playBuffer(arg[0], arg[1], arg[2]); };
+    app.ports.playBuffer.subscribe(play);
+}

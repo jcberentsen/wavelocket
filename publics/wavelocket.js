@@ -4326,9 +4326,6 @@ function _Browser_load(url)
 		}
 	}));
 }
-var elm$core$Basics$identity = function (x) {
-	return x;
-};
 var elm$core$Array$branchFactor = 32;
 var elm$core$Array$Array_elm_builtin = F4(
 	function (a, b, c, d) {
@@ -4804,6 +4801,35 @@ var elm$json$Json$Decode$errorToStringHelp = F2(
 			}
 		}
 	});
+var elm$json$Json$Encode$string = _Json_wrap;
+var author$project$Main$decodeUri = _Platform_outgoingPort('decodeUri', elm$json$Json$Encode$string);
+var elm$core$Platform$Cmd$batch = _Platform_batch;
+var elm$json$Json$Encode$null = _Json_encodeNull;
+var author$project$Main$init = function (waveUri) {
+	return _Utils_Tuple2(
+		{decodedAudio: elm$json$Json$Encode$null, uri: waveUri},
+		elm$core$Platform$Cmd$batch(
+			_List_fromArray(
+				[
+					author$project$Main$decodeUri(waveUri)
+				])));
+};
+var author$project$Main$AudioDecoded = function (a) {
+	return {$: 'AudioDecoded', a: a};
+};
+var elm$json$Json$Decode$value = _Json_decodeValue;
+var author$project$Main$audioDecoded = _Platform_incomingPort('audioDecoded', elm$json$Json$Decode$value);
+var elm$core$Basics$identity = function (x) {
+	return x;
+};
+var elm$core$Platform$Sub$batch = _Platform_batch;
+var author$project$Main$subscriptions = function (_n0) {
+	return elm$core$Platform$Sub$batch(
+		_List_fromArray(
+			[
+				author$project$Main$audioDecoded(author$project$Main$AudioDecoded)
+			]));
+};
 var elm$json$Json$Encode$float = _Json_wrap;
 var elm$json$Json$Encode$list = F2(
 	function (func, entries) {
@@ -4814,9 +4840,8 @@ var elm$json$Json$Encode$list = F2(
 				_Json_emptyArray(_Utils_Tuple0),
 				entries));
 	});
-var elm$json$Json$Encode$string = _Json_wrap;
-var author$project$Main$playUri = _Platform_outgoingPort(
-	'playUri',
+var author$project$Main$playBuffer = _Platform_outgoingPort(
+	'playBuffer',
 	function ($) {
 		var a = $.a;
 		var b = $.b;
@@ -4826,32 +4851,22 @@ var author$project$Main$playUri = _Platform_outgoingPort(
 			elm$core$Basics$identity,
 			_List_fromArray(
 				[
-					elm$json$Json$Encode$string(a),
+					elm$core$Basics$identity(a),
 					elm$json$Json$Encode$float(b),
 					elm$json$Json$Encode$float(c)
 				]));
 	});
-var elm$core$Platform$Cmd$batch = _Platform_batch;
-var author$project$Main$init = function (waveUri) {
-	return _Utils_Tuple2(
-		waveUri,
-		elm$core$Platform$Cmd$batch(
-			_List_fromArray(
-				[
-					author$project$Main$playUri(
-					_Utils_Tuple3(waveUri, 0.5, 1.0))
-				])));
-};
-var elm$core$Platform$Sub$batch = _Platform_batch;
-var elm$core$Platform$Sub$none = elm$core$Platform$Sub$batch(_List_Nil);
-var author$project$Main$subscriptions = function (_n0) {
-	return elm$core$Platform$Sub$none;
-};
-var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
 var author$project$Main$update = F2(
-	function (_n0, m) {
-		return _Utils_Tuple2(m, elm$core$Platform$Cmd$none);
+	function (msg, m) {
+		var val = msg.a;
+		return _Utils_Tuple2(
+			_Utils_update(
+				m,
+				{decodedAudio: val}),
+			author$project$Main$playBuffer(
+				_Utils_Tuple3(val, 0.5, 1.0)));
 	});
+var elm$core$Debug$toString = _Debug_toString;
 var elm$json$Json$Decode$map = _Json_map1;
 var elm$json$Json$Decode$map2 = _Json_map2;
 var elm$json$Json$Decode$succeed = _Json_succeed;
@@ -10020,11 +10035,12 @@ var mdgriffith$elm_ui$Internal$Model$Text = function (a) {
 var mdgriffith$elm_ui$Element$text = function (content) {
 	return mdgriffith$elm_ui$Internal$Model$Text(content);
 };
-var author$project$Main$view = function (waveUri) {
+var author$project$Main$view = function (model) {
 	return A2(
 		mdgriffith$elm_ui$Element$layout,
 		_List_Nil,
-		mdgriffith$elm_ui$Element$text('wavelocket: ' + waveUri));
+		mdgriffith$elm_ui$Element$text(
+			'wavelocket: ' + (model.uri + elm$core$Debug$toString(model.decodedAudio))));
 };
 var elm$browser$Browser$External = function (a) {
 	return {$: 'External', a: a};

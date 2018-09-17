@@ -1,6 +1,7 @@
-port module Main exposing (Model, Msg, defaultFlags, init, main, playUri, reactor, subscriptions, update, view)
+port module Main exposing (main)
 
 import Browser
+import Debug
 import Element exposing (Element, alignRight, el, rgb, row, text)
 import Element.Background as Background
 import Element.Border as Border
@@ -12,14 +13,18 @@ import Tuple exposing (first)
 -- outgoing ports
 
 
-port playUri : ( String, Float, Float ) -> Cmd msg
+port playBuffer : ( E.Value, Float, Float ) -> Cmd msg
+
+
+
+-- port playUri : ( String, Float, Float ) -> Cmd msg
 
 
 port decodeUri : String -> Cmd msg
 
 
 
--- incoming ports
+-- Incoming ports
 
 
 port audioDecoded : (E.Value -> msg) -> Sub msg
@@ -56,10 +61,12 @@ type alias Model =
     }
 
 
-init : Model -> ( Model, Cmd Msg )
+init : String -> ( Model, Cmd Msg )
 init waveUri =
-    ( { waveUri = waveUri, decodedAudio = E.null }
-    , Cmd.batch [ playUri ( waveUri, 0.5, 1.0 ) ]
+    ( { uri = waveUri, decodedAudio = E.null }
+    , Cmd.batch
+        [ decodeUri waveUri
+        ]
     )
 
 
@@ -75,15 +82,15 @@ subscriptions _ =
 -- Update
 
 
-type alias Msg =
-    AudioDecoded E.Value
+type Msg
+    = AudioDecoded E.Value
 
 
 update msg m =
     case msg of
         AudioDecoded val ->
             ( { m | decodedAudio = val }
-            , Cmd.none
+            , playBuffer ( val, 0.5, 1.0 )
             )
 
 
@@ -92,4 +99,4 @@ update msg m =
 
 
 view model =
-    Element.layout [] <| text <| "wavelocket: " ++ model.waveUri ++ toString model.decodedAudio
+    Element.layout [] <| text <| "wavelocket: " ++ model.uri ++ Debug.toString model.decodedAudio
