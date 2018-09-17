@@ -1,9 +1,10 @@
-module Main exposing (Msg, init, main, subscriptions, update, view)
+module Main exposing (Msg, init, main, reactor, subscriptions, update, view)
 
 import Browser
 import Element exposing (Element, alignRight, el, rgb, row, text)
 import Element.Background as Background
 import Element.Border as Border
+import Tuple exposing (first)
 
 
 main =
@@ -12,6 +13,18 @@ main =
         , update = update
         , view = view
         , subscriptions = subscriptions
+        }
+
+
+defaultFlags =
+    "reactor sample"
+
+
+reactor =
+    Browser.sandbox
+        { init = first <| init defaultFlags
+        , update = \msg m -> first <| update msg m
+        , view = view
         }
 
 
