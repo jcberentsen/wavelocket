@@ -1,11 +1,12 @@
 port module Main exposing (main)
 
+import Array exposing (Array)
 import Browser
 import Debug
 import Element exposing (Element, alignRight, el, rgb, row, text)
 import Element.Background as Background
 import Element.Border as Border
-import Json.Encode as E
+import Json.Decode as D
 import Tuple exposing (first)
 
 
@@ -13,7 +14,7 @@ import Tuple exposing (first)
 -- outgoing ports
 
 
-port playBuffer : ( E.Value, Float, Float ) -> Cmd msg
+port playBuffer : ( AudioInfo, Float, Float ) -> Cmd msg
 
 
 
@@ -27,7 +28,7 @@ port decodeUri : String -> Cmd msg
 -- Incoming ports
 
 
-port audioDecoded : (E.Value -> msg) -> Sub msg
+port audioDecoded : (D.Value -> msg) -> Sub msg
 
 
 main =
@@ -57,13 +58,33 @@ reactor =
 
 type alias Model =
     { uri : String
-    , decodedAudio : E.Value
+    , audioInfo : Maybe AudioInfo
+    , error : String
     }
+
+
+type alias AudioInfo =
+    { channelData : Array Float
+    , buffer : D.Value
+    , sampleRate : Float
+    , length : Int
+    }
+
+
+decodeAudioInfo =
+    D.map4 AudioInfo
+        (D.field "channelData" (D.array D.float))
+        (D.field "buffer" D.value)
+        (D.field "sampleRate" D.float)
+        (D.field "length" D.int)
 
 
 init : String -> ( Model, Cmd Msg )
 init waveUri =
-    ( { uri = waveUri, decodedAudio = E.null }
+    ( { uri = waveUri
+      , audioInfo = Nothing
+      , error = ""
+      }
     , Cmd.batch
         [ decodeUri waveUri
         ]
@@ -83,15 +104,22 @@ subscriptions _ =
 
 
 type Msg
-    = AudioDecoded E.Value
+    = AudioDecoded D.Value
 
 
 update msg m =
     case msg of
         AudioDecoded val ->
-            ( { m | decodedAudio = val }
-            , playBuffer ( val, 0.5, 1.0 )
-            )
+            case D.decodeValue decodeAudioInfo val of
+                Ok audioInfo ->
+                    ( { m | audioInfo = Just audioInfo }
+                    , playBuffer ( audioInfo, 0.5, 1.0 )
+                    )
+
+                Err err ->
+                    ( { m | error = D.errorToString err }
+                    , Cmd.none
+                    )
 
 
 
@@ -99,4 +127,9 @@ update msg m =
 
 
 view model =
-    Element.layout [] <| text <| "wavelocket: " ++ model.uri ++ Debug.toString model.decodedAudio
+    Element.layout [] <|
+        Element.column []
+            [ text <| "wavelocket: " ++ String.dropLeft 20 model.uri
+            , text <| Debug.toString model.audioInfo
+            , text model.error
+            ]

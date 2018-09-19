@@ -38,8 +38,15 @@ function withLoadSound(url, callback) {
 function decodeUri(replyTo, audioUri)
 {
     withLoadSound(audioUri, function (buffer) {
-        console.log("Decoded audio of length " + buffer.length)
-        replyTo.send(buffer);
+        console.log("Decoded audio of length: " + buffer.length)
+        console.log("Decoded audio rate: " + buffer.sampleRate)
+        decodedAudio =
+            { channelData: Array.from(buffer.getChannelData(0))
+            , buffer: buffer
+            , sampleRate: buffer.sampleRate
+            , length: buffer.length
+            }
+        replyTo.send(decodedAudio);
     });
 }
 
@@ -49,27 +56,27 @@ function doPlayUri(audioUri, startSec, lenSec) {
     });
 }
 
-function playBuffer(buffer, startSec, lenSec) {
+function playDecodedAudio(decodedAudio, startSec, lenSec) {
     audioCtx = connectAudioOnce();
 
     var source = audioCtx.createBufferSource();
     source.connect(audioCtx.destination);
-    start = Math.min( (startSec * buffer.sampleRate), buffer.length);
-    len = Math.max( ( start + lenSec * buffer.sampleRate ), buffer.length);
+    start = Math.min( (startSec * decodedAudio.sampleRate), decodedAudio.length);
+    len = Math.max( ( start + lenSec * decodedAudio.sampleRate ), decodedAudio.length);
 
-    var arrayBuffer = audioCtx.createBuffer(1, len, buffer.sampleRate);
-    fillBuffer(arrayBuffer, start, len, buffer);
+    var arrayBuffer = audioCtx.createBuffer(1, len, decodedAudio.sampleRate);
+    fillBuffer(arrayBuffer, start, len, decodedAudio.channelData);
 
     source.buffer = arrayBuffer;
     source.start();
 }
 
-function fillBuffer(buf, start, len, fromBuffer)
+function fillBuffer(buf, start, len, fromChannelData)
 {
   var nowBuffering = buf.getChannelData(0);
   for (var i = 0; i < len; i++) {
     // audio needs to be in [-1.0; 1.0]
-    nowBuffering[i] = fromBuffer.getChannelData(0)[start + i];
+    nowBuffering[i] = fromChannelData[start + i];
   }
 }
 
@@ -81,6 +88,6 @@ function registerPorts(app)
     var audioDecode = function(arg) { decodeUri(app.ports.audioDecoded, arg); };
     app.ports.decodeUri.subscribe(audioDecode);
 
-    var play = function(arg) { playBuffer(arg[0], arg[1], arg[2]); };
+    var play = function(arg) { playDecodedAudio(arg[0], arg[1], arg[2]); };
     app.ports.playBuffer.subscribe(play);
 }

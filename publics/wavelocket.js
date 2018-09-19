@@ -4804,10 +4804,9 @@ var elm$json$Json$Decode$errorToStringHelp = F2(
 var elm$json$Json$Encode$string = _Json_wrap;
 var author$project$Main$decodeUri = _Platform_outgoingPort('decodeUri', elm$json$Json$Encode$string);
 var elm$core$Platform$Cmd$batch = _Platform_batch;
-var elm$json$Json$Encode$null = _Json_encodeNull;
 var author$project$Main$init = function (waveUri) {
 	return _Utils_Tuple2(
-		{decodedAudio: elm$json$Json$Encode$null, uri: waveUri},
+		{audioInfo: elm$core$Maybe$Nothing, error: '', uri: waveUri},
 		elm$core$Platform$Cmd$batch(
 			_List_fromArray(
 				[
@@ -4830,7 +4829,57 @@ var author$project$Main$subscriptions = function (_n0) {
 				author$project$Main$audioDecoded(author$project$Main$AudioDecoded)
 			]));
 };
+var author$project$Main$AudioInfo = F4(
+	function (channelData, buffer, sampleRate, length) {
+		return {buffer: buffer, channelData: channelData, length: length, sampleRate: sampleRate};
+	});
+var elm$json$Json$Decode$array = _Json_decodeArray;
+var elm$json$Json$Decode$field = _Json_decodeField;
+var elm$json$Json$Decode$float = _Json_decodeFloat;
+var elm$json$Json$Decode$int = _Json_decodeInt;
+var elm$json$Json$Decode$map4 = _Json_map4;
+var author$project$Main$decodeAudioInfo = A5(
+	elm$json$Json$Decode$map4,
+	author$project$Main$AudioInfo,
+	A2(
+		elm$json$Json$Decode$field,
+		'channelData',
+		elm$json$Json$Decode$array(elm$json$Json$Decode$float)),
+	A2(elm$json$Json$Decode$field, 'buffer', elm$json$Json$Decode$value),
+	A2(elm$json$Json$Decode$field, 'sampleRate', elm$json$Json$Decode$float),
+	A2(elm$json$Json$Decode$field, 'length', elm$json$Json$Decode$int));
+var elm$core$Elm$JsArray$foldl = _JsArray_foldl;
+var elm$core$Array$foldl = F3(
+	function (func, baseCase, _n0) {
+		var tree = _n0.c;
+		var tail = _n0.d;
+		var helper = F2(
+			function (node, acc) {
+				if (node.$ === 'SubTree') {
+					var subTree = node.a;
+					return A3(elm$core$Elm$JsArray$foldl, helper, acc, subTree);
+				} else {
+					var values = node.a;
+					return A3(elm$core$Elm$JsArray$foldl, func, acc, values);
+				}
+			});
+		return A3(
+			elm$core$Elm$JsArray$foldl,
+			func,
+			A3(elm$core$Elm$JsArray$foldl, helper, baseCase, tree),
+			tail);
+	});
+var elm$json$Json$Encode$array = F2(
+	function (func, entries) {
+		return _Json_wrap(
+			A3(
+				elm$core$Array$foldl,
+				_Json_addEntry(func),
+				_Json_emptyArray(_Utils_Tuple0),
+				entries));
+	});
 var elm$json$Json$Encode$float = _Json_wrap;
+var elm$json$Json$Encode$int = _Json_wrap;
 var elm$json$Json$Encode$list = F2(
 	function (func, entries) {
 		return _Json_wrap(
@@ -4840,6 +4889,19 @@ var elm$json$Json$Encode$list = F2(
 				_Json_emptyArray(_Utils_Tuple0),
 				entries));
 	});
+var elm$json$Json$Encode$object = function (pairs) {
+	return _Json_wrap(
+		A3(
+			elm$core$List$foldl,
+			F2(
+				function (_n0, obj) {
+					var k = _n0.a;
+					var v = _n0.b;
+					return A3(_Json_addField, k, v, obj);
+				}),
+			_Json_emptyObject(_Utils_Tuple0),
+			pairs));
+};
 var author$project$Main$playBuffer = _Platform_outgoingPort(
 	'playBuffer',
 	function ($) {
@@ -4851,65 +4913,81 @@ var author$project$Main$playBuffer = _Platform_outgoingPort(
 			elm$core$Basics$identity,
 			_List_fromArray(
 				[
-					elm$core$Basics$identity(a),
+					function ($) {
+					return elm$json$Json$Encode$object(
+						_List_fromArray(
+							[
+								_Utils_Tuple2(
+								'buffer',
+								elm$core$Basics$identity($.buffer)),
+								_Utils_Tuple2(
+								'channelData',
+								elm$json$Json$Encode$array(elm$json$Json$Encode$float)($.channelData)),
+								_Utils_Tuple2(
+								'length',
+								elm$json$Json$Encode$int($.length)),
+								_Utils_Tuple2(
+								'sampleRate',
+								elm$json$Json$Encode$float($.sampleRate))
+							]));
+				}(a),
 					elm$json$Json$Encode$float(b),
 					elm$json$Json$Encode$float(c)
 				]));
 	});
+var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
+var elm$json$Json$Decode$decodeValue = _Json_run;
 var author$project$Main$update = F2(
 	function (msg, m) {
 		var val = msg.a;
-		return _Utils_Tuple2(
-			_Utils_update(
-				m,
-				{decodedAudio: val}),
-			author$project$Main$playBuffer(
-				_Utils_Tuple3(val, 0.5, 1.0)));
+		var _n1 = A2(elm$json$Json$Decode$decodeValue, author$project$Main$decodeAudioInfo, val);
+		if (_n1.$ === 'Ok') {
+			var audioInfo = _n1.a;
+			return _Utils_Tuple2(
+				_Utils_update(
+					m,
+					{
+						audioInfo: elm$core$Maybe$Just(audioInfo)
+					}),
+				author$project$Main$playBuffer(
+					_Utils_Tuple3(audioInfo, 0.5, 1.0)));
+		} else {
+			var err = _n1.a;
+			return _Utils_Tuple2(
+				_Utils_update(
+					m,
+					{
+						error: elm$json$Json$Decode$errorToString(err)
+					}),
+				elm$core$Platform$Cmd$none);
+		}
 	});
 var elm$core$Debug$toString = _Debug_toString;
-var elm$json$Json$Decode$map = _Json_map1;
-var elm$json$Json$Decode$map2 = _Json_map2;
-var elm$json$Json$Decode$succeed = _Json_succeed;
-var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
-	switch (handler.$) {
-		case 'Normal':
-			return 0;
-		case 'MayStopPropagation':
-			return 1;
-		case 'MayPreventDefault':
-			return 2;
-		default:
-			return 3;
-	}
-};
-var elm$html$Html$Attributes$stringProperty = F2(
-	function (key, string) {
-		return A2(
-			_VirtualDom_property,
-			key,
-			elm$json$Json$Encode$string(string));
+var elm$core$String$length = _String_length;
+var elm$core$String$slice = _String_slice;
+var elm$core$String$dropLeft = F2(
+	function (n, string) {
+		return (n < 1) ? string : A3(
+			elm$core$String$slice,
+			n,
+			elm$core$String$length(string),
+			string);
 	});
-var elm$html$Html$Attributes$class = elm$html$Html$Attributes$stringProperty('className');
-var mdgriffith$elm_ui$Internal$Model$Attr = function (a) {
-	return {$: 'Attr', a: a};
+var mdgriffith$elm_ui$Internal$Model$Height = function (a) {
+	return {$: 'Height', a: a};
 };
-var mdgriffith$elm_ui$Internal$Model$htmlClass = function (cls) {
-	return mdgriffith$elm_ui$Internal$Model$Attr(
-		elm$html$Html$Attributes$class(cls));
+var mdgriffith$elm_ui$Element$height = mdgriffith$elm_ui$Internal$Model$Height;
+var mdgriffith$elm_ui$Internal$Model$Content = {$: 'Content'};
+var mdgriffith$elm_ui$Element$shrink = mdgriffith$elm_ui$Internal$Model$Content;
+var mdgriffith$elm_ui$Internal$Model$Width = function (a) {
+	return {$: 'Width', a: a};
 };
-var mdgriffith$elm_ui$Internal$Model$OnlyDynamic = F2(
-	function (a, b) {
-		return {$: 'OnlyDynamic', a: a, b: b};
-	});
-var mdgriffith$elm_ui$Internal$Model$StaticRootAndDynamic = F2(
-	function (a, b) {
-		return {$: 'StaticRootAndDynamic', a: a, b: b};
-	});
+var mdgriffith$elm_ui$Element$width = mdgriffith$elm_ui$Internal$Model$Width;
 var mdgriffith$elm_ui$Internal$Model$Unkeyed = function (a) {
 	return {$: 'Unkeyed', a: a};
 };
-var mdgriffith$elm_ui$Internal$Model$AsEl = {$: 'AsEl'};
-var mdgriffith$elm_ui$Internal$Model$asEl = mdgriffith$elm_ui$Internal$Model$AsEl;
+var mdgriffith$elm_ui$Internal$Model$AsColumn = {$: 'AsColumn'};
+var mdgriffith$elm_ui$Internal$Model$asColumn = mdgriffith$elm_ui$Internal$Model$AsColumn;
 var mdgriffith$elm_ui$Internal$Model$Generic = {$: 'Generic'};
 var mdgriffith$elm_ui$Internal$Model$div = mdgriffith$elm_ui$Internal$Model$Generic;
 var mdgriffith$elm_ui$Internal$Flag$Field = F2(
@@ -5016,6 +5094,21 @@ var elm$core$List$map = F2(
 			_List_Nil,
 			xs);
 	});
+var elm$json$Json$Decode$map = _Json_map1;
+var elm$json$Json$Decode$map2 = _Json_map2;
+var elm$json$Json$Decode$succeed = _Json_succeed;
+var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
+	switch (handler.$) {
+		case 'Normal':
+			return 0;
+		case 'MayStopPropagation':
+			return 1;
+		case 'MayPreventDefault':
+			return 2;
+		default:
+			return 3;
+	}
+};
 var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var mdgriffith$elm_ui$Internal$Model$Keyed = function (a) {
 	return {$: 'Keyed', a: a};
@@ -5027,6 +5120,8 @@ var mdgriffith$elm_ui$Internal$Model$Styled = function (a) {
 var mdgriffith$elm_ui$Internal$Model$Unstyled = function (a) {
 	return {$: 'Unstyled', a: a};
 };
+var mdgriffith$elm_ui$Internal$Model$AsEl = {$: 'AsEl'};
+var mdgriffith$elm_ui$Internal$Model$asEl = mdgriffith$elm_ui$Internal$Model$AsEl;
 var mdgriffith$elm_ui$Internal$Model$AsParagraph = {$: 'AsParagraph'};
 var mdgriffith$elm_ui$Internal$Model$asParagraph = mdgriffith$elm_ui$Internal$Model$AsParagraph;
 var elm$core$Basics$not = _Basics_not;
@@ -5034,6 +5129,14 @@ var elm$html$Html$div = _VirtualDom_node('div');
 var elm$html$Html$p = _VirtualDom_node('p');
 var elm$html$Html$s = _VirtualDom_node('s');
 var elm$html$Html$u = _VirtualDom_node('u');
+var elm$html$Html$Attributes$stringProperty = F2(
+	function (key, string) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			elm$json$Json$Encode$string(string));
+	});
+var elm$html$Html$Attributes$class = elm$html$Html$Attributes$stringProperty('className');
 var elm$virtual_dom$VirtualDom$keyedNode = function (tag) {
 	return _VirtualDom_keyedNode(
 		_VirtualDom_noScript(tag));
@@ -9767,6 +9870,39 @@ var mdgriffith$elm_ui$Internal$Model$element = F4(
 				_List_Nil,
 				elm$core$List$reverse(attributes)));
 	});
+var mdgriffith$elm_ui$Internal$Model$Attr = function (a) {
+	return {$: 'Attr', a: a};
+};
+var mdgriffith$elm_ui$Internal$Model$htmlClass = function (cls) {
+	return mdgriffith$elm_ui$Internal$Model$Attr(
+		elm$html$Html$Attributes$class(cls));
+};
+var mdgriffith$elm_ui$Element$column = F2(
+	function (attrs, children) {
+		return A4(
+			mdgriffith$elm_ui$Internal$Model$element,
+			mdgriffith$elm_ui$Internal$Model$asColumn,
+			mdgriffith$elm_ui$Internal$Model$div,
+			A2(
+				elm$core$List$cons,
+				mdgriffith$elm_ui$Internal$Model$htmlClass(mdgriffith$elm_ui$Internal$Style$classes.contentTop + (' ' + mdgriffith$elm_ui$Internal$Style$classes.contentLeft)),
+				A2(
+					elm$core$List$cons,
+					mdgriffith$elm_ui$Element$height(mdgriffith$elm_ui$Element$shrink),
+					A2(
+						elm$core$List$cons,
+						mdgriffith$elm_ui$Element$width(mdgriffith$elm_ui$Element$shrink),
+						attrs))),
+			mdgriffith$elm_ui$Internal$Model$Unkeyed(children));
+	});
+var mdgriffith$elm_ui$Internal$Model$OnlyDynamic = F2(
+	function (a, b) {
+		return {$: 'OnlyDynamic', a: a, b: b};
+	});
+var mdgriffith$elm_ui$Internal$Model$StaticRootAndDynamic = F2(
+	function (a, b) {
+		return {$: 'StaticRootAndDynamic', a: a, b: b};
+	});
 var mdgriffith$elm_ui$Internal$Model$AllowHover = {$: 'AllowHover'};
 var mdgriffith$elm_ui$Internal$Model$Layout = {$: 'Layout'};
 var mdgriffith$elm_ui$Internal$Model$Rgba = F4(
@@ -10039,8 +10175,17 @@ var author$project$Main$view = function (model) {
 	return A2(
 		mdgriffith$elm_ui$Element$layout,
 		_List_Nil,
-		mdgriffith$elm_ui$Element$text(
-			'wavelocket: ' + (model.uri + elm$core$Debug$toString(model.decodedAudio))));
+		A2(
+			mdgriffith$elm_ui$Element$column,
+			_List_Nil,
+			_List_fromArray(
+				[
+					mdgriffith$elm_ui$Element$text(
+					'wavelocket: ' + A2(elm$core$String$dropLeft, 20, model.uri)),
+					mdgriffith$elm_ui$Element$text(
+					elm$core$Debug$toString(model.audioInfo)),
+					mdgriffith$elm_ui$Element$text(model.error)
+				])));
 };
 var elm$browser$Browser$External = function (a) {
 	return {$: 'External', a: a};
@@ -10138,16 +10283,6 @@ var elm$core$Task$perform = F2(
 		return elm$core$Task$command(
 			elm$core$Task$Perform(
 				A2(elm$core$Task$map, toMessage, task)));
-	});
-var elm$core$String$length = _String_length;
-var elm$core$String$slice = _String_slice;
-var elm$core$String$dropLeft = F2(
-	function (n, string) {
-		return (n < 1) ? string : A3(
-			elm$core$String$slice,
-			n,
-			elm$core$String$length(string),
-			string);
 	});
 var elm$core$String$startsWith = _String_startsWith;
 var elm$url$Url$Http = {$: 'Http'};
