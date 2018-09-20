@@ -3,9 +3,10 @@ port module Main exposing (main)
 import Array exposing (Array)
 import Browser
 import Debug
-import Element exposing (Element, alignRight, el, rgb, row, text)
+import Element exposing (Element, alignRight, column, el, rgb, row, text)
 import Element.Background as Background
 import Element.Border as Border
+import Element.Input exposing (button)
 import Json.Decode as D
 import Tuple exposing (first)
 
@@ -17,10 +18,6 @@ import Tuple exposing (first)
 port playBuffer : ( AudioInfo, Float, Float ) -> Cmd msg
 
 
-
--- port playUri : ( String, Float, Float ) -> Cmd msg
-
-
 port decodeUri : String -> Cmd msg
 
 
@@ -29,38 +26,6 @@ port decodeUri : String -> Cmd msg
 
 
 port audioDecoded : (D.Value -> msg) -> Sub msg
-
-
-main =
-    Browser.element
-        { init = init
-        , update = update
-        , view = view
-        , subscriptions = subscriptions
-        }
-
-
-defaultFlags =
-    "reactor sample"
-
-
-reactor =
-    Browser.sandbox
-        { init = first <| init defaultFlags
-        , update = \msg m -> first <| update msg m
-        , view = view
-        }
-
-
-
--- Init
-
-
-type alias Model =
-    { uri : String
-    , audioInfo : Maybe AudioInfo
-    , error : String
-    }
 
 
 type alias AudioInfo =
@@ -77,6 +42,13 @@ decodeAudioInfo =
         (D.field "buffer" D.value)
         (D.field "sampleRate" D.float)
         (D.field "length" D.int)
+
+
+type alias Model =
+    { uri : String
+    , audioInfo : Maybe AudioInfo
+    , error : String
+    }
 
 
 init : String -> ( Model, Cmd Msg )
@@ -105,6 +77,7 @@ subscriptions _ =
 
 type Msg
     = AudioDecoded D.Value
+    | PlayInterval
 
 
 update msg m =
@@ -121,15 +94,54 @@ update msg m =
                     , Cmd.none
                     )
 
+        PlayInterval ->
+            ( m
+            , case m.audioInfo of
+                Just audioBuffer ->
+                    playBuffer ( audioBuffer, 0.0, 0.2 )
 
-
--- View
+                _ ->
+                    Cmd.none
+            )
 
 
 view model =
     Element.layout [] <|
         Element.column []
             [ text <| "wavelocket: " ++ String.dropLeft 20 model.uri
-            , text <| Debug.toString model.audioInfo
+            , Maybe.map viewAudioInfo model.audioInfo |> Maybe.withDefault (text "Audio info not avaiable")
             , text model.error
             ]
+
+
+viewAudioInfo : AudioInfo -> Element Msg
+viewAudioInfo info =
+    column []
+        [ text ("Audio sample count: " ++ String.fromInt info.length)
+        , text ("Rate: " ++ String.fromFloat info.sampleRate)
+        , button []
+            { onPress = Just PlayInterval
+            , label = text "Play segment"
+            }
+        ]
+
+
+main =
+    Browser.element
+        { init = init
+        , update = update
+        , view = view
+        , subscriptions = subscriptions
+        }
+
+
+defaultFlags =
+    "reactor sample"
+
+
+reactor =
+    Browser.sandbox
+        { init = first <| init defaultFlags
+        , update = \msg m -> first <| update msg m
+        , view = view
+        }

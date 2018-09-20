@@ -4818,9 +4818,6 @@ var author$project$Main$AudioDecoded = function (a) {
 };
 var elm$json$Json$Decode$value = _Json_decodeValue;
 var author$project$Main$audioDecoded = _Platform_incomingPort('audioDecoded', elm$json$Json$Decode$value);
-var elm$core$Basics$identity = function (x) {
-	return x;
-};
 var elm$core$Platform$Sub$batch = _Platform_batch;
 var author$project$Main$subscriptions = function (_n0) {
 	return elm$core$Platform$Sub$batch(
@@ -4848,6 +4845,9 @@ var author$project$Main$decodeAudioInfo = A5(
 	A2(elm$json$Json$Decode$field, 'buffer', elm$json$Json$Decode$value),
 	A2(elm$json$Json$Decode$field, 'sampleRate', elm$json$Json$Decode$float),
 	A2(elm$json$Json$Decode$field, 'length', elm$json$Json$Decode$int));
+var elm$core$Basics$identity = function (x) {
+	return x;
+};
 var elm$core$Elm$JsArray$foldl = _JsArray_foldl;
 var elm$core$Array$foldl = F3(
 	function (func, baseCase, _n0) {
@@ -4939,40 +4939,46 @@ var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
 var elm$json$Json$Decode$decodeValue = _Json_run;
 var author$project$Main$update = F2(
 	function (msg, m) {
-		var val = msg.a;
-		var _n1 = A2(elm$json$Json$Decode$decodeValue, author$project$Main$decodeAudioInfo, val);
-		if (_n1.$ === 'Ok') {
-			var audioInfo = _n1.a;
-			return _Utils_Tuple2(
-				_Utils_update(
-					m,
-					{
-						audioInfo: elm$core$Maybe$Just(audioInfo)
-					}),
-				author$project$Main$playBuffer(
-					_Utils_Tuple3(audioInfo, 0.5, 1.0)));
+		if (msg.$ === 'AudioDecoded') {
+			var val = msg.a;
+			var _n1 = A2(elm$json$Json$Decode$decodeValue, author$project$Main$decodeAudioInfo, val);
+			if (_n1.$ === 'Ok') {
+				var audioInfo = _n1.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						m,
+						{
+							audioInfo: elm$core$Maybe$Just(audioInfo)
+						}),
+					author$project$Main$playBuffer(
+						_Utils_Tuple3(audioInfo, 0.5, 1.0)));
+			} else {
+				var err = _n1.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						m,
+						{
+							error: elm$json$Json$Decode$errorToString(err)
+						}),
+					elm$core$Platform$Cmd$none);
+			}
 		} else {
-			var err = _n1.a;
 			return _Utils_Tuple2(
-				_Utils_update(
-					m,
-					{
-						error: elm$json$Json$Decode$errorToString(err)
-					}),
-				elm$core$Platform$Cmd$none);
+				m,
+				function () {
+					var _n2 = m.audioInfo;
+					if (_n2.$ === 'Just') {
+						var audioBuffer = _n2.a;
+						return author$project$Main$playBuffer(
+							_Utils_Tuple3(audioBuffer, 0.0, 0.2));
+					} else {
+						return elm$core$Platform$Cmd$none;
+					}
+				}());
 		}
 	});
-var elm$core$Debug$toString = _Debug_toString;
-var elm$core$String$length = _String_length;
-var elm$core$String$slice = _String_slice;
-var elm$core$String$dropLeft = F2(
-	function (n, string) {
-		return (n < 1) ? string : A3(
-			elm$core$String$slice,
-			n,
-			elm$core$String$length(string),
-			string);
-	});
+var author$project$Main$PlayInterval = {$: 'PlayInterval'};
+var elm$core$String$fromFloat = _String_fromNumber;
 var mdgriffith$elm_ui$Internal$Model$Height = function (a) {
 	return {$: 'Height', a: a};
 };
@@ -5554,7 +5560,6 @@ var mdgriffith$elm_ui$Internal$Model$Style = F2(
 	function (a, b) {
 		return {$: 'Style', a: a, b: b};
 	});
-var elm$core$String$fromFloat = _String_fromNumber;
 var mdgriffith$elm_ui$Internal$Model$formatColor = function (_n0) {
 	var red = _n0.a;
 	var green = _n0.b;
@@ -9895,6 +9900,218 @@ var mdgriffith$elm_ui$Element$column = F2(
 						attrs))),
 			mdgriffith$elm_ui$Internal$Model$Unkeyed(children));
 	});
+var mdgriffith$elm_ui$Internal$Model$Text = function (a) {
+	return {$: 'Text', a: a};
+};
+var mdgriffith$elm_ui$Element$text = function (content) {
+	return mdgriffith$elm_ui$Internal$Model$Text(content);
+};
+var elm$json$Json$Encode$bool = _Json_wrap;
+var elm$html$Html$Attributes$boolProperty = F2(
+	function (key, bool) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			elm$json$Json$Encode$bool(bool));
+	});
+var elm$html$Html$Attributes$disabled = elm$html$Html$Attributes$boolProperty('disabled');
+var elm$html$Html$Attributes$tabindex = function (n) {
+	return A2(
+		_VirtualDom_attribute,
+		'tabIndex',
+		elm$core$String$fromInt(n));
+};
+var mdgriffith$elm_ui$Internal$Flag$cursor = mdgriffith$elm_ui$Internal$Flag$flag(21);
+var mdgriffith$elm_ui$Internal$Model$Class = F2(
+	function (a, b) {
+		return {$: 'Class', a: a, b: b};
+	});
+var mdgriffith$elm_ui$Element$pointer = A2(mdgriffith$elm_ui$Internal$Model$Class, mdgriffith$elm_ui$Internal$Flag$cursor, mdgriffith$elm_ui$Internal$Style$classes.cursorPointer);
+var elm$core$Basics$composeL = F3(
+	function (g, f, x) {
+		return g(
+			f(x));
+	});
+var elm$virtual_dom$VirtualDom$Normal = function (a) {
+	return {$: 'Normal', a: a};
+};
+var elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
+var elm$html$Html$Events$on = F2(
+	function (event, decoder) {
+		return A2(
+			elm$virtual_dom$VirtualDom$on,
+			event,
+			elm$virtual_dom$VirtualDom$Normal(decoder));
+	});
+var elm$html$Html$Events$onClick = function (msg) {
+	return A2(
+		elm$html$Html$Events$on,
+		'click',
+		elm$json$Json$Decode$succeed(msg));
+};
+var mdgriffith$elm_ui$Element$Events$onClick = A2(elm$core$Basics$composeL, mdgriffith$elm_ui$Internal$Model$Attr, elm$html$Html$Events$onClick);
+var elm$core$List$any = F2(
+	function (isOkay, list) {
+		any:
+		while (true) {
+			if (!list.b) {
+				return false;
+			} else {
+				var x = list.a;
+				var xs = list.b;
+				if (isOkay(x)) {
+					return true;
+				} else {
+					var $temp$isOkay = isOkay,
+						$temp$list = xs;
+					isOkay = $temp$isOkay;
+					list = $temp$list;
+					continue any;
+				}
+			}
+		}
+	});
+var mdgriffith$elm_ui$Element$Input$hasFocusStyle = function (attr) {
+	if (((attr.$ === 'StyleClass') && (attr.b.$ === 'PseudoSelector')) && (attr.b.a.$ === 'Focus')) {
+		var _n1 = attr.b;
+		var _n2 = _n1.a;
+		return true;
+	} else {
+		return false;
+	}
+};
+var mdgriffith$elm_ui$Internal$Model$NoAttribute = {$: 'NoAttribute'};
+var mdgriffith$elm_ui$Element$Input$focusDefault = function (attrs) {
+	return A2(elm$core$List$any, mdgriffith$elm_ui$Element$Input$hasFocusStyle, attrs) ? mdgriffith$elm_ui$Internal$Model$NoAttribute : mdgriffith$elm_ui$Internal$Model$htmlClass('focusable');
+};
+var mdgriffith$elm_ui$Element$Input$enter = 'Enter';
+var elm$virtual_dom$VirtualDom$MayPreventDefault = function (a) {
+	return {$: 'MayPreventDefault', a: a};
+};
+var elm$html$Html$Events$preventDefaultOn = F2(
+	function (event, decoder) {
+		return A2(
+			elm$virtual_dom$VirtualDom$on,
+			event,
+			elm$virtual_dom$VirtualDom$MayPreventDefault(decoder));
+	});
+var elm$json$Json$Decode$andThen = _Json_andThen;
+var elm$json$Json$Decode$fail = _Json_fail;
+var elm$json$Json$Decode$string = _Json_decodeString;
+var mdgriffith$elm_ui$Element$Input$onKey = F2(
+	function (desiredCode, msg) {
+		var decode = function (code) {
+			return _Utils_eq(code, desiredCode) ? elm$json$Json$Decode$succeed(msg) : elm$json$Json$Decode$fail('Not the enter key');
+		};
+		var isKey = A2(
+			elm$json$Json$Decode$andThen,
+			decode,
+			A2(elm$json$Json$Decode$field, 'key', elm$json$Json$Decode$string));
+		return mdgriffith$elm_ui$Internal$Model$Attr(
+			A2(
+				elm$html$Html$Events$preventDefaultOn,
+				'keyup',
+				A2(
+					elm$json$Json$Decode$map,
+					function (fired) {
+						return _Utils_Tuple2(fired, true);
+					},
+					isKey)));
+	});
+var mdgriffith$elm_ui$Element$Input$onEnter = function (msg) {
+	return A2(mdgriffith$elm_ui$Element$Input$onKey, mdgriffith$elm_ui$Element$Input$enter, msg);
+};
+var mdgriffith$elm_ui$Internal$Model$Button = {$: 'Button'};
+var mdgriffith$elm_ui$Internal$Model$Describe = function (a) {
+	return {$: 'Describe', a: a};
+};
+var mdgriffith$elm_ui$Element$Input$button = F2(
+	function (attrs, _n0) {
+		var onPress = _n0.onPress;
+		var label = _n0.label;
+		return A4(
+			mdgriffith$elm_ui$Internal$Model$element,
+			mdgriffith$elm_ui$Internal$Model$asEl,
+			mdgriffith$elm_ui$Internal$Model$div,
+			A2(
+				elm$core$List$cons,
+				mdgriffith$elm_ui$Element$width(mdgriffith$elm_ui$Element$shrink),
+				A2(
+					elm$core$List$cons,
+					mdgriffith$elm_ui$Element$height(mdgriffith$elm_ui$Element$shrink),
+					A2(
+						elm$core$List$cons,
+						mdgriffith$elm_ui$Internal$Model$htmlClass(mdgriffith$elm_ui$Internal$Style$classes.contentCenterX),
+						A2(
+							elm$core$List$cons,
+							mdgriffith$elm_ui$Internal$Model$htmlClass(mdgriffith$elm_ui$Internal$Style$classes.contentCenterY),
+							A2(
+								elm$core$List$cons,
+								mdgriffith$elm_ui$Internal$Model$htmlClass(mdgriffith$elm_ui$Internal$Style$classes.seButton),
+								A2(
+									elm$core$List$cons,
+									mdgriffith$elm_ui$Element$pointer,
+									A2(
+										elm$core$List$cons,
+										mdgriffith$elm_ui$Element$Input$focusDefault(attrs),
+										A2(
+											elm$core$List$cons,
+											mdgriffith$elm_ui$Internal$Model$Describe(mdgriffith$elm_ui$Internal$Model$Button),
+											A2(
+												elm$core$List$cons,
+												mdgriffith$elm_ui$Internal$Model$Attr(
+													elm$html$Html$Attributes$tabindex(0)),
+												function () {
+													if (onPress.$ === 'Nothing') {
+														return A2(
+															elm$core$List$cons,
+															mdgriffith$elm_ui$Internal$Model$Attr(
+																elm$html$Html$Attributes$disabled(true)),
+															attrs);
+													} else {
+														var msg = onPress.a;
+														return A2(
+															elm$core$List$cons,
+															mdgriffith$elm_ui$Element$Events$onClick(msg),
+															A2(
+																elm$core$List$cons,
+																mdgriffith$elm_ui$Element$Input$onEnter(msg),
+																attrs));
+													}
+												}()))))))))),
+			mdgriffith$elm_ui$Internal$Model$Unkeyed(
+				_List_fromArray(
+					[label])));
+	});
+var author$project$Main$viewAudioInfo = function (info) {
+	return A2(
+		mdgriffith$elm_ui$Element$column,
+		_List_Nil,
+		_List_fromArray(
+			[
+				mdgriffith$elm_ui$Element$text(
+				'Audio sample count: ' + elm$core$String$fromInt(info.length)),
+				mdgriffith$elm_ui$Element$text(
+				'Rate: ' + elm$core$String$fromFloat(info.sampleRate)),
+				A2(
+				mdgriffith$elm_ui$Element$Input$button,
+				_List_Nil,
+				{
+					label: mdgriffith$elm_ui$Element$text('Play segment'),
+					onPress: elm$core$Maybe$Just(author$project$Main$PlayInterval)
+				})
+			]));
+};
+var elm$core$String$length = _String_length;
+var elm$core$String$slice = _String_slice;
+var elm$core$String$dropLeft = F2(
+	function (n, string) {
+		return (n < 1) ? string : A3(
+			elm$core$String$slice,
+			n,
+			elm$core$String$length(string),
+			string);
+	});
 var mdgriffith$elm_ui$Internal$Model$OnlyDynamic = F2(
 	function (a, b) {
 		return {$: 'OnlyDynamic', a: a, b: b};
@@ -10165,12 +10382,6 @@ var mdgriffith$elm_ui$Element$layoutWith = F3(
 	});
 var mdgriffith$elm_ui$Element$layout = mdgriffith$elm_ui$Element$layoutWith(
 	{options: _List_Nil});
-var mdgriffith$elm_ui$Internal$Model$Text = function (a) {
-	return {$: 'Text', a: a};
-};
-var mdgriffith$elm_ui$Element$text = function (content) {
-	return mdgriffith$elm_ui$Internal$Model$Text(content);
-};
 var author$project$Main$view = function (model) {
 	return A2(
 		mdgriffith$elm_ui$Element$layout,
@@ -10182,8 +10393,10 @@ var author$project$Main$view = function (model) {
 				[
 					mdgriffith$elm_ui$Element$text(
 					'wavelocket: ' + A2(elm$core$String$dropLeft, 20, model.uri)),
-					mdgriffith$elm_ui$Element$text(
-					elm$core$Debug$toString(model.audioInfo)),
+					A2(
+					elm$core$Maybe$withDefault,
+					mdgriffith$elm_ui$Element$text('Audio info not avaiable'),
+					A2(elm$core$Maybe$map, author$project$Main$viewAudioInfo, model.audioInfo)),
 					mdgriffith$elm_ui$Element$text(model.error)
 				])));
 };
@@ -10404,7 +10617,6 @@ var elm$url$Url$fromString = function (str) {
 		A2(elm$core$String$dropLeft, 8, str)) : elm$core$Maybe$Nothing);
 };
 var elm$browser$Browser$element = _Browser_element;
-var elm$json$Json$Decode$string = _Json_decodeString;
 var author$project$Main$main = elm$browser$Browser$element(
 	{init: author$project$Main$init, subscriptions: author$project$Main$subscriptions, update: author$project$Main$update, view: author$project$Main$view});
 _Platform_export({'Main':{'init':author$project$Main$main(elm$json$Json$Decode$string)(0)}});}(this));
