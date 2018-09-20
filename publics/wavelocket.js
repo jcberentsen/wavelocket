@@ -10133,12 +10133,6 @@ var elm$core$Basics$composeL = F3(
 	});
 var mdgriffith$elm_ui$Internal$Model$unstyled = A2(elm$core$Basics$composeL, mdgriffith$elm_ui$Internal$Model$Unstyled, elm$core$Basics$always);
 var mdgriffith$elm_ui$Element$html = mdgriffith$elm_ui$Internal$Model$unstyled;
-var mdgriffith$elm_ui$Internal$Model$Text = function (a) {
-	return {$: 'Text', a: a};
-};
-var mdgriffith$elm_ui$Element$text = function (content) {
-	return mdgriffith$elm_ui$Internal$Model$Text(content);
-};
 var author$project$Main$viewAudioInfo = F3(
 	function (x, confirmedX, info) {
 		return A2(
@@ -10146,7 +10140,6 @@ var author$project$Main$viewAudioInfo = F3(
 			_List_Nil,
 			_List_fromArray(
 				[
-					mdgriffith$elm_ui$Element$text('Place the red line just past the \'ks\' in the utterance. Click to listen'),
 					mdgriffith$elm_ui$Element$html(
 					A3(author$project$Main$viewWaveform, x, confirmedX, info.channelData))
 				]));
@@ -10421,6 +10414,12 @@ var mdgriffith$elm_ui$Element$layoutWith = F3(
 	});
 var mdgriffith$elm_ui$Element$layout = mdgriffith$elm_ui$Element$layoutWith(
 	{options: _List_Nil});
+var mdgriffith$elm_ui$Internal$Model$Text = function (a) {
+	return {$: 'Text', a: a};
+};
+var mdgriffith$elm_ui$Element$text = function (content) {
+	return mdgriffith$elm_ui$Internal$Model$Text(content);
+};
 var author$project$Main$view = function (model) {
 	return A2(
 		mdgriffith$elm_ui$Element$layout,

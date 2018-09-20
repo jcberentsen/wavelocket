@@ -165,8 +165,7 @@ view model =
 viewAudioInfo : Int -> Maybe Int -> AudioInfo -> Element Msg
 viewAudioInfo x confirmedX info =
     column []
-        [ -- text "Place the red line just past the 'ks' in the utterance. Click to listen"
-          html <| viewWaveform x confirmedX info.channelData
+        [ html <| viewWaveform x confirmedX info.channelData
         ]
 
 
