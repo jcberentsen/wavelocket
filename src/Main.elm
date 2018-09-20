@@ -50,10 +50,17 @@ decodeAudioInfo =
         (D.field "length" D.int)
 
 
+type Answer
+    = Yes
+    | No
+
+
 type alias Model =
     { uri : String
     , audioInfo : Maybe AudioInfo
     , error : String
+    , played : Bool
+    , vote : Maybe Answer
     , pos : Pos
     , confirmedX : Maybe Int
     }
@@ -63,7 +70,9 @@ init : String -> ( Model, Cmd Msg )
 init waveUri =
     ( { uri = waveUri
       , audioInfo = Nothing
+      , played = False
       , error = ""
+      , vote = Nothing
       , pos = Pos 600 0
       , confirmedX = Nothing
       }
@@ -90,6 +99,9 @@ type Msg
     | PlayInterval
     | PlayFull
     | Move Pos
+    | Vote Answer
+    | Confirm
+    | Reset
 
 
 update msg m =
@@ -126,7 +138,7 @@ update msg m =
             )
 
         PlayFull ->
-            ( m
+            ( { m | played = True }
             , case m.audioInfo of
                 Just audioBuffer ->
                     -- Note: currently limit playback to initial 20 seconds
@@ -138,6 +150,21 @@ update msg m =
 
         Move p ->
             ( { m | pos = { x = max 1 (min (p.x - 100) 600), y = p.y } }
+            , Cmd.none
+            )
+
+        Vote answer ->
+            ( { m | vote = Just answer }
+            , Cmd.none
+            )
+
+        Reset ->
+            ( { m | vote = Nothing }
+            , Cmd.none
+            )
+
+        Confirm ->
+            ( m
             , Cmd.none
             )
 
@@ -154,15 +181,41 @@ posInBuffer x audioBuffer =
 view model =
     Element.layout [] <|
         Element.column []
-            [ Maybe.map (viewAudioInfo model.pos.x model.confirmedX) model.audioInfo |> Maybe.withDefault (text "...")
+            [ Maybe.map (viewAudioInfo model model.pos.x model.confirmedX) model.audioInfo |> Maybe.withDefault (text "...")
             ]
 
 
-viewAudioInfo : Int -> Maybe Int -> AudioInfo -> Element Msg
-viewAudioInfo x confirmedX info =
-    column []
-        [ html <| viewWaveform x confirmedX info.channelData
-        ]
+viewAudioInfo : Model -> Int -> Maybe Int -> AudioInfo -> Element Msg
+viewAudioInfo model x confirmedX info =
+    column [] <|
+        case model.vote of
+            Just Yes ->
+                [ html <| viewWaveform x confirmedX info.channelData
+                , case model.confirmedX of
+                    Just _ ->
+                        column []
+                            [ button [] { onPress = Just Confirm, label = text "Confirm" } ]
+
+                    _ ->
+                        Element.none
+                , button [] { onPress = Just Reset, label = text "Undo" }
+                ]
+
+            Just No ->
+                [ text "Negative"
+                , button [] { onPress = Just Reset, label = text "Undo" }
+                ]
+
+            Nothing ->
+                [ button [] { onPress = Just PlayFull, label = text "Play ▶" } ]
+                    ++ (if model.played then
+                            [ button [] { onPress = Just <| Vote Yes, label = text "Yes" }
+                            , button [] { onPress = Just <| Vote No, label = text "No" }
+                            ]
+
+                        else
+                            []
+                       )
 
 
 viewWaveform : Int -> Maybe Int -> Array Float -> Html Msg
