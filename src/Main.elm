@@ -3,11 +3,17 @@ port module Main exposing (main)
 import Array exposing (Array)
 import Browser
 import Debug
-import Element exposing (Element, alignRight, column, el, rgb, row, text)
+import Element exposing (Element, alignRight, column, el, html, rgb, row, text)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Input exposing (button)
+import Html exposing (Html)
 import Json.Decode as D
+import Json.Encode as E
+import Svg exposing (Svg, polyline, svg)
+import Svg.Attributes as Svg exposing (fill, points, stroke, viewBox)
+import Svg.Events as Svg
+import Svg.Lazy as Svg
 import Tuple exposing (first)
 
 
@@ -48,6 +54,9 @@ type alias Model =
     { uri : String
     , audioInfo : Maybe AudioInfo
     , error : String
+    , motion : D.Value
+    , pos : Pos
+    , confirmedX : Maybe Int
     }
 
 
@@ -56,6 +65,9 @@ init waveUri =
     ( { uri = waveUri
       , audioInfo = Nothing
       , error = ""
+      , motion = E.null
+      , pos = Pos 600 0
+      , confirmedX = Nothing
       }
     , Cmd.batch
         [ decodeUri waveUri
@@ -78,6 +90,9 @@ subscriptions _ =
 type Msg
     = AudioDecoded D.Value
     | PlayInterval
+    | PlayFull
+    | Moving D.Value
+    | Move Pos
 
 
 update msg m =
@@ -86,7 +101,8 @@ update msg m =
             case D.decodeValue decodeAudioInfo val of
                 Ok audioInfo ->
                     ( { m | audioInfo = Just audioInfo }
-                    , playBuffer ( audioInfo, 0.5, 1.0 )
+                    , Cmd.none
+                      -- playBuffer ( audioInfo, 0.5, 1.0 )
                     )
 
                 Err err ->
@@ -95,35 +111,129 @@ update msg m =
                     )
 
         PlayInterval ->
+            ( { m | confirmedX = Just m.pos.x }
+            , case m.audioInfo of
+                Just audioBuffer ->
+                    let
+                        end =
+                            posInBuffer m.pos.x audioBuffer
+
+                        start =
+                            max 0 <| end - 1.2
+                    in
+                    playBuffer ( audioBuffer, start, end - start )
+
+                -- TODO play from user indicated inverval
+                _ ->
+                    Cmd.none
+            )
+
+        PlayFull ->
             ( m
             , case m.audioInfo of
                 Just audioBuffer ->
-                    playBuffer ( audioBuffer, 0.0, 0.2 )
+                    -- Note: currently limit playback to initial 20 seconds
+                    playBuffer ( audioBuffer, 0.0, 20.0 )
 
                 _ ->
                     Cmd.none
             )
 
+        Move p ->
+            ( { m | pos = p }, Cmd.none )
+
+        Moving v ->
+            ( { m | motion = v }, Cmd.none )
+
+
+posInBuffer : Int -> AudioInfo -> Float
+posInBuffer x audioBuffer =
+    (toFloat x / 600.0) * toFloat audioBuffer.length / audioBuffer.sampleRate
+
+
+
+-- View
+
 
 view model =
     Element.layout [] <|
         Element.column []
-            [ text <| "wavelocket: " ++ String.dropLeft 20 model.uri
-            , Maybe.map viewAudioInfo model.audioInfo |> Maybe.withDefault (text "Audio info not avaiable")
-            , text model.error
+            [ Maybe.map (viewAudioInfo model.pos.x model.confirmedX) model.audioInfo |> Maybe.withDefault (text "...")
             ]
 
 
-viewAudioInfo : AudioInfo -> Element Msg
-viewAudioInfo info =
+viewAudioInfo : Int -> Maybe Int -> AudioInfo -> Element Msg
+viewAudioInfo x confirmedX info =
     column []
-        [ text ("Audio sample count: " ++ String.fromInt info.length)
-        , text ("Rate: " ++ String.fromFloat info.sampleRate)
-        , button []
-            { onPress = Just PlayInterval
-            , label = text "Play segment"
-            }
+        [ -- text "Place the red line just past the 'ks' in the utterance. Click to listen"
+          html <| viewWaveform x confirmedX info.channelData
         ]
+
+
+viewWaveform : Int -> Maybe Int -> Array Float -> Html Msg
+viewWaveform lineX confirmedX data =
+    let
+        pToStr x y =
+            String.fromInt x ++ "," ++ String.fromInt y
+
+        linePoints x =
+            pToStr (x - 20) 0 ++ " " ++ pToStr x 60 ++ " " ++ pToStr (x - 20) 120
+
+        svgBrack color x =
+            polyline [ fill "none", stroke color, points <| linePoints x ] []
+    in
+    svg
+        [ Svg.width "600"
+        , Svg.height "120"
+        , viewBox "0 0 600 120"
+        , Svg.on "click" (D.succeed PlayInterval)
+        , Svg.on "mousemove" (D.map Move getClickPos)
+        ]
+        [ Svg.lazy waveformSvg data
+        , svgBrack "darkred" lineX
+        , Maybe.map (svgBrack "green") confirmedX |> Maybe.withDefault (Svg.text "")
+        ]
+
+
+type alias Pos =
+    { x : Int
+    , y : Int
+    }
+
+
+getClickPos : D.Decoder Pos
+getClickPos =
+    D.map2 Pos
+        (D.at [ "offsetX" ] D.int)
+        (D.at [ "offsetY" ] D.int)
+
+
+waveformSvg : Array Float -> Svg Msg
+waveformSvg data =
+    polyline [ fill "none", stroke "blue", points <| waveformToVertices data ] []
+
+
+waveformToVertices : Array Float -> String
+waveformToVertices data =
+    -- TODO subsample
+    let
+        w =
+            600
+
+        points =
+            Array.indexedMap
+                (\i v ->
+                    sampleToString w (toFloat (Array.length data)) i v ++ " "
+                )
+                data
+    in
+    Array.foldr String.append "" points
+
+
+sampleToString targetWidth totalLen i v =
+    String.fromFloat (targetWidth * toFloat i / totalLen)
+        ++ ","
+        ++ String.fromFloat (60 + (60 * 3 * v))
 
 
 main =
