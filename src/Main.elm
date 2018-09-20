@@ -54,7 +54,6 @@ type alias Model =
     { uri : String
     , audioInfo : Maybe AudioInfo
     , error : String
-    , motion : D.Value
     , pos : Pos
     , confirmedX : Maybe Int
     }
@@ -65,7 +64,6 @@ init waveUri =
     ( { uri = waveUri
       , audioInfo = Nothing
       , error = ""
-      , motion = E.null
       , pos = Pos 600 0
       , confirmedX = Nothing
       }
@@ -91,7 +89,6 @@ type Msg
     = AudioDecoded D.Value
     | PlayInterval
     | PlayFull
-    | Moving D.Value
     | Move Pos
 
 
@@ -140,10 +137,9 @@ update msg m =
             )
 
         Move p ->
-            ( { m | pos = p }, Cmd.none )
-
-        Moving v ->
-            ( { m | motion = v }, Cmd.none )
+            ( { m | pos = { x = max 1 (min (p.x - 100) 600), y = p.y } }
+            , Cmd.none
+            )
 
 
 posInBuffer : Int -> AudioInfo -> Float
@@ -172,9 +168,6 @@ viewAudioInfo x confirmedX info =
 viewWaveform : Int -> Maybe Int -> Array Float -> Html Msg
 viewWaveform lineX confirmedX data =
     let
-        pToStr x y =
-            String.fromInt x ++ "," ++ String.fromInt y
-
         linePoints x =
             pToStr (x - 20) 0 ++ " " ++ pToStr x 60 ++ " " ++ pToStr (x - 20) 120
 
@@ -182,9 +175,9 @@ viewWaveform lineX confirmedX data =
             polyline [ fill "none", stroke color, points <| linePoints x ] []
     in
     svg
-        [ Svg.width "600"
+        [ Svg.width "800"
         , Svg.height "120"
-        , viewBox "0 0 600 120"
+        , viewBox "0 0 800 120"
         , Svg.on "click" (D.succeed PlayInterval)
         , Svg.on "mousemove" (D.map Move getClickPos)
         ]
@@ -198,6 +191,17 @@ type alias Pos =
     { x : Int
     , y : Int
     }
+
+
+pToStr x y =
+    String.fromInt (100 + x) ++ "," ++ String.fromInt y
+
+
+sampleToString : Int -> Int -> Int -> Float -> String
+sampleToString targetWidth totalLen i v =
+    pToStr
+        (floor (toFloat targetWidth * toFloat i / toFloat totalLen))
+        (floor (60 + (60 * 3 * v)))
 
 
 getClickPos : D.Decoder Pos
@@ -222,17 +226,11 @@ waveformToVertices data =
         points =
             Array.indexedMap
                 (\i v ->
-                    sampleToString w (toFloat (Array.length data)) i v ++ " "
+                    sampleToString w (Array.length data) i v ++ " "
                 )
                 data
     in
     Array.foldr String.append "" points
-
-
-sampleToString targetWidth totalLen i v =
-    String.fromFloat (targetWidth * toFloat i / totalLen)
-        ++ ","
-        ++ String.fromFloat (60 + (60 * 3 * v))
 
 
 main =

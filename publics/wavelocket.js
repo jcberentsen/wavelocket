@@ -4808,14 +4808,12 @@ var elm$json$Json$Decode$errorToStringHelp = F2(
 var elm$json$Json$Encode$string = _Json_wrap;
 var author$project$Main$decodeUri = _Platform_outgoingPort('decodeUri', elm$json$Json$Encode$string);
 var elm$core$Platform$Cmd$batch = _Platform_batch;
-var elm$json$Json$Encode$null = _Json_encodeNull;
 var author$project$Main$init = function (waveUri) {
 	return _Utils_Tuple2(
 		{
 			audioInfo: elm$core$Maybe$Nothing,
 			confirmedX: elm$core$Maybe$Nothing,
 			error: '',
-			motion: elm$json$Json$Encode$null,
 			pos: A2(author$project$Main$Pos, 600, 0),
 			uri: waveUri
 		},
@@ -4951,6 +4949,10 @@ var author$project$Main$posInBuffer = F2(
 	function (x, audioBuffer) {
 		return ((x / 600.0) * audioBuffer.length) / audioBuffer.sampleRate;
 	});
+var elm$core$Basics$min = F2(
+	function (x, y) {
+		return (_Utils_cmp(x, y) < 0) ? x : y;
+	});
 var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
 var elm$json$Json$Decode$decodeValue = _Json_run;
 var author$project$Main$update = F2(
@@ -5010,19 +5012,20 @@ var author$project$Main$update = F2(
 							return elm$core$Platform$Cmd$none;
 						}
 					}());
-			case 'Move':
+			default:
 				var p = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{pos: p}),
-					elm$core$Platform$Cmd$none);
-			default:
-				var v = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						m,
-						{motion: v}),
+						{
+							pos: {
+								x: A2(
+									elm$core$Basics$max,
+									1,
+									A2(elm$core$Basics$min, p.x - 100, 600)),
+								y: p.y
+							}
+						}),
 					elm$core$Platform$Cmd$none);
 		}
 	});
@@ -5103,10 +5106,16 @@ var author$project$Main$getClickPos = A3(
 		_List_fromArray(
 			['offsetY']),
 		elm$json$Json$Decode$int));
-var elm$core$String$fromFloat = _String_fromNumber;
+var author$project$Main$pToStr = F2(
+	function (x, y) {
+		return elm$core$String$fromInt(100 + x) + (',' + elm$core$String$fromInt(y));
+	});
 var author$project$Main$sampleToString = F4(
 	function (targetWidth, totalLen, i, v) {
-		return elm$core$String$fromFloat((targetWidth * i) / totalLen) + (',' + elm$core$String$fromFloat(60 + ((60 * 3) * v)));
+		return A2(
+			author$project$Main$pToStr,
+			elm$core$Basics$floor((targetWidth * i) / totalLen),
+			elm$core$Basics$floor(60 + ((60 * 3) * v)));
 	});
 var elm$core$Bitwise$shiftLeftBy = _Bitwise_shiftLeftBy;
 var elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
@@ -5243,12 +5252,8 @@ var elm$virtual_dom$VirtualDom$lazy = _VirtualDom_lazy;
 var elm$svg$Svg$Lazy$lazy = elm$virtual_dom$VirtualDom$lazy;
 var author$project$Main$viewWaveform = F3(
 	function (lineX, confirmedX, data) {
-		var pToStr = F2(
-			function (x, y) {
-				return elm$core$String$fromInt(x) + (',' + elm$core$String$fromInt(y));
-			});
 		var linePoints = function (x) {
-			return A2(pToStr, x - 20, 0) + (' ' + (A2(pToStr, x, 60) + (' ' + A2(pToStr, x - 20, 120))));
+			return A2(author$project$Main$pToStr, x - 20, 0) + (' ' + (A2(author$project$Main$pToStr, x, 60) + (' ' + A2(author$project$Main$pToStr, x - 20, 120))));
 		};
 		var svgBrack = F2(
 			function (color, x) {
@@ -5267,9 +5272,9 @@ var author$project$Main$viewWaveform = F3(
 			elm$svg$Svg$svg,
 			_List_fromArray(
 				[
-					elm$svg$Svg$Attributes$width('600'),
+					elm$svg$Svg$Attributes$width('800'),
 					elm$svg$Svg$Attributes$height('120'),
-					elm$svg$Svg$Attributes$viewBox('0 0 600 120'),
+					elm$svg$Svg$Attributes$viewBox('0 0 800 120'),
 					A2(
 					elm$svg$Svg$Events$on,
 					'click',
@@ -5782,6 +5787,7 @@ var mdgriffith$elm_ui$Internal$Model$Style = F2(
 	function (a, b) {
 		return {$: 'Style', a: a, b: b};
 	});
+var elm$core$String$fromFloat = _String_fromNumber;
 var mdgriffith$elm_ui$Internal$Model$formatColor = function (_n0) {
 	var red = _n0.a;
 	var green = _n0.b;
@@ -7679,10 +7685,6 @@ var mdgriffith$elm_ui$Internal$Model$staticRoot = A3(
 		[
 			elm$virtual_dom$VirtualDom$text(mdgriffith$elm_ui$Internal$Style$rules)
 		]));
-var elm$core$Basics$min = F2(
-	function (x, y) {
-		return (_Utils_cmp(x, y) < 0) ? x : y;
-	});
 var elm$core$Basics$negate = function (n) {
 	return -n;
 };
