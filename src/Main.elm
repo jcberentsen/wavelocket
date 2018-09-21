@@ -196,7 +196,11 @@ update msg m =
 
         Vote answer ->
             ( { m | vote = answer }
-            , Cmd.none
+            , if answer == No then
+                saveInterval ( m.field, 0 )
+
+              else
+                Cmd.none
             )
 
         Reset ->

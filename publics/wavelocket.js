@@ -4830,6 +4830,7 @@ var author$project$Main$subscriptions = function (_n0) {
 var author$project$Main$ConfirmedPositive = function (a) {
 	return {$: 'ConfirmedPositive', a: a};
 };
+var author$project$Main$No = {$: 'No'};
 var author$project$Main$AudioInfo = F4(
 	function (channelData, buffer, sampleRate, length) {
 		return {buffer: buffer, channelData: channelData, length: length, sampleRate: sampleRate};
@@ -5052,7 +5053,8 @@ var author$project$Main$update = F2(
 					_Utils_update(
 						m,
 						{vote: answer}),
-					elm$core$Platform$Cmd$none);
+					_Utils_eq(answer, author$project$Main$No) ? author$project$Main$saveInterval(
+						_Utils_Tuple2(m.field, 0)) : elm$core$Platform$Cmd$none);
 			case 'Reset':
 				return _Utils_Tuple2(
 					_Utils_update(
@@ -5084,7 +5086,6 @@ var author$project$Main$update = F2(
 var author$project$Main$Confirm = function (a) {
 	return {$: 'Confirm', a: a};
 };
-var author$project$Main$No = {$: 'No'};
 var author$project$Main$PlayFull = {$: 'PlayFull'};
 var author$project$Main$Reset = {$: 'Reset'};
 var author$project$Main$Vote = function (a) {
