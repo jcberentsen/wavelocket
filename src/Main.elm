@@ -3,7 +3,7 @@ port module Main exposing (main)
 import Array exposing (Array)
 import Browser
 import Debug
-import Element exposing (Element, alignRight, column, el, html, rgb, row, text)
+import Element exposing (Element, alignRight, column, el, fill, height, html, minimum, px, rgb, row, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Input exposing (button)
@@ -11,7 +11,7 @@ import Html exposing (Html)
 import Json.Decode as D
 import Json.Encode as E
 import Svg exposing (Svg, polyline, svg)
-import Svg.Attributes as Svg exposing (fill, points, stroke, viewBox)
+import Svg.Attributes as Svg exposing (points, stroke, viewBox)
 import Svg.Events as Svg
 import Svg.Lazy as Svg
 import Tuple exposing (first)
@@ -179,7 +179,7 @@ posInBuffer x audioBuffer =
 
 
 view model =
-    Element.layout [] <|
+    Element.layout [ width (fill |> minimum 800), height (fill |> minimum 200) ] <|
         Element.column []
             [ Maybe.map (viewAudioInfo model model.pos.x model.confirmedX) model.audioInfo |> Maybe.withDefault (text "...")
             ]
@@ -225,7 +225,7 @@ viewWaveform lineX confirmedX data =
             pToStr (x - 20) 0 ++ " " ++ pToStr x 60 ++ " " ++ pToStr (x - 20) 120
 
         svgBrack color x =
-            polyline [ fill "none", stroke color, points <| linePoints x ] []
+            polyline [ Svg.fill "none", stroke color, points <| linePoints x ] []
     in
     svg
         [ Svg.width "800"
@@ -266,7 +266,7 @@ getClickPos =
 
 waveformSvg : Array Float -> Svg Msg
 waveformSvg data =
-    polyline [ fill "none", stroke "blue", points <| waveformToVertices data ] []
+    polyline [ Svg.fill "none", stroke "blue", points <| waveformToVertices data ] []
 
 
 waveformToVertices : Array Float -> String
