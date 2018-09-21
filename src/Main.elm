@@ -49,6 +49,9 @@ port playBuffer : ( AudioInfo, Float, Float ) -> Cmd msg
 port decodeUri : String -> Cmd msg
 
 
+port saveInterval : ( D.Value, Float ) -> Cmd msg
+
+
 
 -- Incoming ports
 
@@ -81,6 +84,7 @@ type Answer
 
 type alias Model =
     { uri : String
+    , field : D.Value
     , audioInfo : Maybe AudioInfo
     , error : String
     , played : Bool
@@ -90,9 +94,16 @@ type alias Model =
     }
 
 
-init : String -> ( Model, Cmd Msg )
-init waveUri =
-    ( { uri = waveUri
+type alias Flags =
+    { uri : String
+    , field : E.Value
+    }
+
+
+init : Flags -> ( Model, Cmd Msg )
+init flags =
+    ( { uri = flags.uri
+      , field = flags.field
       , audioInfo = Nothing
       , played = False
       , error = ""
@@ -101,7 +112,7 @@ init waveUri =
       , confirmedX = Nothing
       }
     , Cmd.batch
-        [ decodeUri waveUri
+        [ decodeUri flags.uri
         ]
     )
 
@@ -195,7 +206,9 @@ update msg m =
 
         Confirm x ->
             ( { m | vote = ConfirmedPositive x }
-            , Cmd.none
+            , Cmd.batch
+                [ saveInterval ( m.field, x / 600 )
+                ]
             )
 
         Leave ->
@@ -365,7 +378,9 @@ main =
 
 
 defaultFlags =
-    "reactor sample"
+    { uri = "reactor sample"
+    , field = E.null
+    }
 
 
 reactor =

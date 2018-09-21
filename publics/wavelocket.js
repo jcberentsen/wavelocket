@@ -4805,13 +4805,13 @@ var elm$json$Json$Decode$errorToStringHelp = F2(
 var elm$json$Json$Encode$string = _Json_wrap;
 var author$project$Main$decodeUri = _Platform_outgoingPort('decodeUri', elm$json$Json$Encode$string);
 var elm$core$Platform$Cmd$batch = _Platform_batch;
-var author$project$Main$init = function (waveUri) {
+var author$project$Main$init = function (flags) {
 	return _Utils_Tuple2(
-		{audioInfo: elm$core$Maybe$Nothing, confirmedX: elm$core$Maybe$Nothing, error: '', mousePos: elm$core$Maybe$Nothing, played: false, uri: waveUri, vote: author$project$Main$Unconfirmed},
+		{audioInfo: elm$core$Maybe$Nothing, confirmedX: elm$core$Maybe$Nothing, error: '', field: flags.field, mousePos: elm$core$Maybe$Nothing, played: false, uri: flags.uri, vote: author$project$Main$Unconfirmed},
 		elm$core$Platform$Cmd$batch(
 			_List_fromArray(
 				[
-					author$project$Main$decodeUri(waveUri)
+					author$project$Main$decodeUri(flags.uri)
 				])));
 };
 var author$project$Main$AudioDecoded = function (a) {
@@ -4943,6 +4943,20 @@ var author$project$Main$posInBuffer = F2(
 	function (x, audioBuffer) {
 		return ((x / 600.0) * audioBuffer.length) / audioBuffer.sampleRate;
 	});
+var author$project$Main$saveInterval = _Platform_outgoingPort(
+	'saveInterval',
+	function ($) {
+		var a = $.a;
+		var b = $.b;
+		return A2(
+			elm$json$Json$Encode$list,
+			elm$core$Basics$identity,
+			_List_fromArray(
+				[
+					elm$core$Basics$identity(a),
+					elm$json$Json$Encode$float(b)
+				]));
+	});
 var elm$core$Basics$min = F2(
 	function (x, y) {
 		return (_Utils_cmp(x, y) < 0) ? x : y;
@@ -5053,7 +5067,12 @@ var author$project$Main$update = F2(
 						{
 							vote: author$project$Main$ConfirmedPositive(x)
 						}),
-					elm$core$Platform$Cmd$none);
+					elm$core$Platform$Cmd$batch(
+						_List_fromArray(
+							[
+								author$project$Main$saveInterval(
+								_Utils_Tuple2(m.field, x / 600))
+							])));
 			default:
 				return _Utils_Tuple2(
 					_Utils_update(
@@ -11194,4 +11213,16 @@ var elm$url$Url$fromString = function (str) {
 var elm$browser$Browser$element = _Browser_element;
 var author$project$Main$main = elm$browser$Browser$element(
 	{init: author$project$Main$init, subscriptions: author$project$Main$subscriptions, update: author$project$Main$update, view: author$project$Main$view});
-_Platform_export({'Main':{'init':author$project$Main$main(elm$json$Json$Decode$string)(0)}});}(this));
+_Platform_export({'Main':{'init':author$project$Main$main(
+	A2(
+		elm$json$Json$Decode$andThen,
+		function (uri) {
+			return A2(
+				elm$json$Json$Decode$andThen,
+				function (field) {
+					return elm$json$Json$Decode$succeed(
+						{field: field, uri: uri});
+				},
+				A2(elm$json$Json$Decode$field, 'field', elm$json$Json$Decode$value));
+		},
+		A2(elm$json$Json$Decode$field, 'uri', elm$json$Json$Decode$string)))(0)}});}(this));
