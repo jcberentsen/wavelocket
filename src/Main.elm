@@ -83,7 +83,7 @@ type alias Model =
     , error : String
     , played : Bool
     , vote : Maybe Answer
-    , pos : Pos
+    , mousePos : Maybe Pos
     , confirmedX : Maybe Int
     }
 
@@ -95,7 +95,7 @@ init waveUri =
       , played = False
       , error = ""
       , vote = Nothing
-      , pos = Pos 600 0
+      , mousePos = Nothing
       , confirmedX = Nothing
       }
     , Cmd.batch
@@ -118,12 +118,13 @@ subscriptions _ =
 
 type Msg
     = AudioDecoded D.Value
-    | PlayInterval
+    | PlayInterval Pos
     | PlayFull
     | Move Pos
     | Vote Answer
     | Confirm
     | Reset
+    | Leave
 
 
 update msg m =
@@ -141,13 +142,17 @@ update msg m =
                     , Cmd.none
                     )
 
-        PlayInterval ->
-            ( { m | confirmedX = Just m.pos.x }
+        PlayInterval pos ->
+            let
+                clampedPos =
+                    { x = max 1 (min (pos.x - 100) 600), y = pos.y }
+            in
+            ( { m | confirmedX = Just clampedPos.x }
             , case m.audioInfo of
                 Just audioBuffer ->
                     let
                         end =
-                            posInBuffer m.pos.x audioBuffer
+                            posInBuffer clampedPos.x audioBuffer
 
                         start =
                             max 0 <| end - 1.2
@@ -170,8 +175,9 @@ update msg m =
                     Cmd.none
             )
 
-        Move p ->
-            ( { m | pos = { x = max 1 (min (p.x - 100) 600), y = p.y } }
+        Move pos ->
+            ( { m | mousePos = Just { x = max 1 (min (pos.x - 100) 600), y = pos.y } }
+              -- TODO DRY this
             , Cmd.none
             )
 
@@ -190,6 +196,11 @@ update msg m =
             , Cmd.none
             )
 
+        Leave ->
+            ( { m | mousePos = Nothing }
+            , Cmd.none
+            )
+
 
 posInBuffer : Int -> AudioInfo -> Float
 posInBuffer x audioBuffer =
@@ -203,15 +214,15 @@ posInBuffer x audioBuffer =
 view model =
     Element.layout [ width (fill |> minimum 800), height (fill |> minimum 200) ] <|
         Maybe.withDefault (text "...") <|
-            Maybe.map (viewAudioInfo model model.pos.x model.confirmedX) model.audioInfo
+            Maybe.map (viewAudioInfo model) model.audioInfo
 
 
-viewAudioInfo : Model -> Int -> Maybe Int -> AudioInfo -> Element Msg
-viewAudioInfo model x confirmedX info =
+viewAudioInfo : Model -> AudioInfo -> Element Msg
+viewAudioInfo model info =
     column [ centerX, spacing 12 ] <|
         case model.vote of
             Just Yes ->
-                [ el [] <| html <| viewWaveform x confirmedX info.channelData
+                [ el [] <| html <| viewWaveform model.mousePos model.confirmedX info.channelData
                 , row [ centerX, spacing 12 ]
                     [ case model.confirmedX of
                         Just _ ->
@@ -244,8 +255,8 @@ viewAudioInfo model x confirmedX info =
                 ]
 
 
-viewWaveform : Int -> Maybe Int -> Array Float -> Html Msg
-viewWaveform lineX confirmedX data =
+viewWaveform : Maybe Pos -> Maybe Int -> Array Float -> Html Msg
+viewWaveform mousePos confirmedX data =
     let
         linePoints x =
             pToStr (x - 20) 0 ++ " " ++ pToStr x 60 ++ " " ++ pToStr (x - 20) 120
@@ -257,11 +268,12 @@ viewWaveform lineX confirmedX data =
         [ Svg.width "800"
         , Svg.height "120"
         , viewBox "0 0 800 120"
-        , Svg.on "click" (D.succeed PlayInterval)
+        , Svg.on "click" (D.map PlayInterval getClickPos)
         , Svg.on "mousemove" (D.map Move getClickPos)
+        , Svg.onMouseOut Leave
         ]
         [ Svg.lazy waveformSvg data
-        , svgBrack "darkred" lineX
+        , Maybe.map (.x >> svgBrack "darkred") mousePos |> Maybe.withDefault (Svg.text "") -- Svg.empty?
         , Maybe.map (svgBrack "green") confirmedX |> Maybe.withDefault (Svg.text "")
         ]
 
