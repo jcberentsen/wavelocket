@@ -3,9 +3,31 @@ port module Main exposing (main)
 import Array exposing (Array)
 import Browser
 import Debug
-import Element exposing (Element, alignRight, column, el, fill, height, html, minimum, px, rgb, row, text, width)
+import Element
+    exposing
+        ( Element
+        , alignRight
+        , centerX
+        , column
+        , el
+        , fill
+        , height
+        , html
+        , minimum
+        , none
+        , padding
+        , paddingXY
+        , px
+        , rgb
+        , rgb255
+        , row
+        , spacing
+        , text
+        , width
+        )
 import Element.Background as Background
 import Element.Border as Border
+import Element.Font as Font
 import Element.Input exposing (button)
 import Html exposing (Html)
 import Json.Decode as D
@@ -180,42 +202,46 @@ posInBuffer x audioBuffer =
 
 view model =
     Element.layout [ width (fill |> minimum 800), height (fill |> minimum 200) ] <|
-        Element.column []
-            [ Maybe.map (viewAudioInfo model model.pos.x model.confirmedX) model.audioInfo |> Maybe.withDefault (text "...")
-            ]
+        Maybe.withDefault (text "...") <|
+            Maybe.map (viewAudioInfo model model.pos.x model.confirmedX) model.audioInfo
 
 
 viewAudioInfo : Model -> Int -> Maybe Int -> AudioInfo -> Element Msg
 viewAudioInfo model x confirmedX info =
-    column [] <|
+    column [ centerX, spacing 12 ] <|
         case model.vote of
             Just Yes ->
-                [ html <| viewWaveform x confirmedX info.channelData
-                , case model.confirmedX of
-                    Just _ ->
-                        column []
-                            [ button [] { onPress = Just Confirm, label = text "Confirm" } ]
+                [ el [] <| html <| viewWaveform x confirmedX info.channelData
+                , row [ centerX, spacing 12 ]
+                    [ case model.confirmedX of
+                        Just _ ->
+                            column []
+                                [ greenWhiteButton { onPress = Just Confirm, label = text "Confirm" } ]
 
-                    _ ->
-                        Element.none
-                , button [] { onPress = Just Reset, label = text "Undo" }
+                        _ ->
+                            Element.none
+                    , secondaryButton { onPress = Just Reset, label = text "Undo" }
+                    ]
                 ]
 
             Just No ->
                 [ text "Negative"
-                , button [] { onPress = Just Reset, label = text "Undo" }
+                , secondaryButton { onPress = Just Reset, label = text "Undo" }
                 ]
 
             Nothing ->
-                [ button [] { onPress = Just PlayFull, label = text "Play ▶" } ]
-                    ++ (if model.played then
-                            [ button [] { onPress = Just <| Vote Yes, label = text "Yes" }
-                            , button [] { onPress = Just <| Vote No, label = text "No" }
-                            ]
+                [ el [ centerX ] <|
+                    greenWhiteButton
+                        { onPress = Just PlayFull, label = text "Play ▶" }
+                , if model.played then
+                    row [ centerX, spacing 12 ]
+                        [ greenWhiteButton { onPress = Just <| Vote Yes, label = text "Yes" }
+                        , greenWhiteButton { onPress = Just <| Vote No, label = text "No" }
+                        ]
 
-                        else
-                            []
-                       )
+                  else
+                    none
+                ]
 
 
 viewWaveform : Int -> Maybe Int -> Array Float -> Html Msg
@@ -284,6 +310,30 @@ waveformToVertices data =
                 data
     in
     Array.foldr String.append "" points
+
+
+greenWhiteButton =
+    button
+        [ Background.color (rgb255 91 183 91)
+        , Border.color (rgb255 204 204 204)
+        , Border.rounded 4
+        , Border.width 1
+        , Border.solid
+        , Font.color (rgb255 255 255 255)
+        , paddingXY 16 8
+        ]
+
+
+secondaryButton =
+    button
+        [ Background.color (rgb255 0 0x6D 0xCC)
+        , Border.color (rgb255 204 204 204)
+        , Border.rounded 4
+        , Border.width 1
+        , Border.solid
+        , Font.color (rgb255 255 255 255)
+        , paddingXY 16 8
+        ]
 
 
 main =
