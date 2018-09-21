@@ -73,7 +73,9 @@ decodeAudioInfo =
 
 
 type Answer
-    = Yes
+    = Unconfirmed
+    | Yes
+    | ConfirmedPositive Float
     | No
 
 
@@ -82,7 +84,7 @@ type alias Model =
     , audioInfo : Maybe AudioInfo
     , error : String
     , played : Bool
-    , vote : Maybe Answer
+    , vote : Answer
     , mousePos : Maybe Pos
     , confirmedX : Maybe Int
     }
@@ -94,7 +96,7 @@ init waveUri =
       , audioInfo = Nothing
       , played = False
       , error = ""
-      , vote = Nothing
+      , vote = Unconfirmed
       , mousePos = Nothing
       , confirmedX = Nothing
       }
@@ -122,7 +124,7 @@ type Msg
     | PlayFull
     | Move Pos
     | Vote Answer
-    | Confirm
+    | Confirm Float
     | Reset
     | Leave
 
@@ -182,17 +184,17 @@ update msg m =
             )
 
         Vote answer ->
-            ( { m | vote = Just answer }
+            ( { m | vote = answer }
             , Cmd.none
             )
 
         Reset ->
-            ( { m | vote = Nothing }
+            ( { m | vote = Unconfirmed }
             , Cmd.none
             )
 
-        Confirm ->
-            ( m
+        Confirm x ->
+            ( { m | vote = ConfirmedPositive x }
             , Cmd.none
             )
 
@@ -221,13 +223,13 @@ viewAudioInfo : Model -> AudioInfo -> Element Msg
 viewAudioInfo model info =
     column [ centerX, spacing 12 ] <|
         case model.vote of
-            Just Yes ->
+            Yes ->
                 [ el [] <| html <| viewWaveform model.mousePos model.confirmedX info.channelData
                 , row [ centerX, spacing 12 ]
                     [ case model.confirmedX of
-                        Just _ ->
+                        Just x ->
                             column []
-                                [ greenWhiteButton { onPress = Just Confirm, label = text "Confirm" } ]
+                                [ greenWhiteButton { onPress = Just (Confirm (toFloat x)), label = text "Confirm" } ]
 
                         _ ->
                             Element.none
@@ -235,12 +237,17 @@ viewAudioInfo model info =
                     ]
                 ]
 
-            Just No ->
+            No ->
                 [ text "Negative"
                 , secondaryButton { onPress = Just Reset, label = text "Undo" }
                 ]
 
-            Nothing ->
+            ConfirmedPositive _ ->
+                [ text "Positive"
+                , secondaryButton { onPress = Just Reset, label = text "Undo" }
+                ]
+
+            Unconfirmed ->
                 [ el [ centerX ] <|
                     greenWhiteButton
                         { onPress = Just PlayFull, label = text "Play ▶" }
