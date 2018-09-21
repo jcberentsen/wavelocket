@@ -4326,10 +4326,6 @@ function _Browser_load(url)
 		}
 	}));
 }
-var author$project$Main$Pos = F2(
-	function (x, y) {
-		return {x: x, y: y};
-	});
 var elm$core$Array$branchFactor = 32;
 var elm$core$Array$Array_elm_builtin = F4(
 	function (a, b, c, d) {
@@ -4810,15 +4806,7 @@ var author$project$Main$decodeUri = _Platform_outgoingPort('decodeUri', elm$json
 var elm$core$Platform$Cmd$batch = _Platform_batch;
 var author$project$Main$init = function (waveUri) {
 	return _Utils_Tuple2(
-		{
-			audioInfo: elm$core$Maybe$Nothing,
-			confirmedX: elm$core$Maybe$Nothing,
-			error: '',
-			played: false,
-			pos: A2(author$project$Main$Pos, 600, 0),
-			uri: waveUri,
-			vote: elm$core$Maybe$Nothing
-		},
+		{audioInfo: elm$core$Maybe$Nothing, confirmedX: elm$core$Maybe$Nothing, error: '', mousePos: elm$core$Maybe$Nothing, played: false, uri: waveUri, vote: elm$core$Maybe$Nothing},
 		elm$core$Platform$Cmd$batch(
 			_List_fromArray(
 				[
@@ -4983,17 +4971,25 @@ var author$project$Main$update = F2(
 						elm$core$Platform$Cmd$none);
 				}
 			case 'PlayInterval':
+				var pos = msg.a;
+				var clampedPos = {
+					x: A2(
+						elm$core$Basics$max,
+						1,
+						A2(elm$core$Basics$min, pos.x - 100, 600)),
+					y: pos.y
+				};
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
 						{
-							confirmedX: elm$core$Maybe$Just(m.pos.x)
+							confirmedX: elm$core$Maybe$Just(clampedPos.x)
 						}),
 					function () {
 						var _n2 = m.audioInfo;
 						if (_n2.$ === 'Just') {
 							var audioBuffer = _n2.a;
-							var end = A2(author$project$Main$posInBuffer, m.pos.x, audioBuffer);
+							var end = A2(author$project$Main$posInBuffer, clampedPos.x, audioBuffer);
 							var start = A2(elm$core$Basics$max, 0, end - 1.2);
 							return author$project$Main$playBuffer(
 								_Utils_Tuple3(audioBuffer, start, end - start));
@@ -5017,18 +5013,19 @@ var author$project$Main$update = F2(
 						}
 					}());
 			case 'Move':
-				var p = msg.a;
+				var pos = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
 						{
-							pos: {
-								x: A2(
-									elm$core$Basics$max,
-									1,
-									A2(elm$core$Basics$min, p.x - 100, 600)),
-								y: p.y
-							}
+							mousePos: elm$core$Maybe$Just(
+								{
+									x: A2(
+										elm$core$Basics$max,
+										1,
+										A2(elm$core$Basics$min, pos.x - 100, 600)),
+									y: pos.y
+								})
 						}),
 					elm$core$Platform$Cmd$none);
 			case 'Vote':
@@ -5046,8 +5043,14 @@ var author$project$Main$update = F2(
 						m,
 						{vote: elm$core$Maybe$Nothing}),
 					elm$core$Platform$Cmd$none);
-			default:
+			case 'Confirm':
 				return _Utils_Tuple2(m, elm$core$Platform$Cmd$none);
+			default:
+				return _Utils_Tuple2(
+					_Utils_update(
+						m,
+						{mousePos: elm$core$Maybe$Nothing}),
+					elm$core$Platform$Cmd$none);
 		}
 	});
 var author$project$Main$Confirm = {$: 'Confirm'};
@@ -10267,10 +10270,17 @@ var author$project$Main$secondaryButton = mdgriffith$elm_ui$Element$Input$button
 			A3(mdgriffith$elm_ui$Element$rgb255, 255, 255, 255)),
 			A2(mdgriffith$elm_ui$Element$paddingXY, 16, 8)
 		]));
+var author$project$Main$Leave = {$: 'Leave'};
 var author$project$Main$Move = function (a) {
 	return {$: 'Move', a: a};
 };
-var author$project$Main$PlayInterval = {$: 'PlayInterval'};
+var author$project$Main$PlayInterval = function (a) {
+	return {$: 'PlayInterval', a: a};
+};
+var author$project$Main$Pos = F2(
+	function (x, y) {
+		return {x: x, y: y};
+	});
 var elm$json$Json$Decode$at = F2(
 	function (fields, decoder) {
 		return A3(elm$core$List$foldr, elm$json$Json$Decode$field, decoder, fields);
@@ -10378,16 +10388,27 @@ var author$project$Main$waveformSvg = function (data) {
 			]),
 		_List_Nil);
 };
+var elm$core$Basics$composeR = F3(
+	function (f, g, x) {
+		return g(
+			f(x));
+	});
 var elm$svg$Svg$svg = elm$svg$Svg$trustedNode('svg');
 var elm$svg$Svg$text = elm$virtual_dom$VirtualDom$text;
 var elm$svg$Svg$Attributes$height = _VirtualDom_attribute('height');
 var elm$svg$Svg$Attributes$viewBox = _VirtualDom_attribute('viewBox');
 var elm$svg$Svg$Attributes$width = _VirtualDom_attribute('width');
 var elm$svg$Svg$Events$on = elm$html$Html$Events$on;
+var elm$svg$Svg$Events$onMouseOut = function (msg) {
+	return A2(
+		elm$html$Html$Events$on,
+		'mouseout',
+		elm$json$Json$Decode$succeed(msg));
+};
 var elm$virtual_dom$VirtualDom$lazy = _VirtualDom_lazy;
 var elm$svg$Svg$Lazy$lazy = elm$virtual_dom$VirtualDom$lazy;
 var author$project$Main$viewWaveform = F3(
-	function (lineX, confirmedX, data) {
+	function (mousePos, confirmedX, data) {
 		var linePoints = function (x) {
 			return A2(author$project$Main$pToStr, x - 20, 0) + (' ' + (A2(author$project$Main$pToStr, x, 60) + (' ' + A2(author$project$Main$pToStr, x - 20, 120))));
 		};
@@ -10414,16 +10435,28 @@ var author$project$Main$viewWaveform = F3(
 					A2(
 					elm$svg$Svg$Events$on,
 					'click',
-					elm$json$Json$Decode$succeed(author$project$Main$PlayInterval)),
+					A2(elm$json$Json$Decode$map, author$project$Main$PlayInterval, author$project$Main$getClickPos)),
 					A2(
 					elm$svg$Svg$Events$on,
 					'mousemove',
-					A2(elm$json$Json$Decode$map, author$project$Main$Move, author$project$Main$getClickPos))
+					A2(elm$json$Json$Decode$map, author$project$Main$Move, author$project$Main$getClickPos)),
+					elm$svg$Svg$Events$onMouseOut(author$project$Main$Leave)
 				]),
 			_List_fromArray(
 				[
 					A2(elm$svg$Svg$Lazy$lazy, author$project$Main$waveformSvg, data),
-					A2(svgBrack, 'darkred', lineX),
+					A2(
+					elm$core$Maybe$withDefault,
+					elm$svg$Svg$text(''),
+					A2(
+						elm$core$Maybe$map,
+						A2(
+							elm$core$Basics$composeR,
+							function ($) {
+								return $.x;
+							},
+							svgBrack('darkred')),
+						mousePos)),
 					A2(
 					elm$core$Maybe$withDefault,
 					elm$svg$Svg$text(''),
@@ -10528,8 +10561,8 @@ var mdgriffith$elm_ui$Internal$Model$Text = function (a) {
 var mdgriffith$elm_ui$Element$text = function (content) {
 	return mdgriffith$elm_ui$Internal$Model$Text(content);
 };
-var author$project$Main$viewAudioInfo = F4(
-	function (model, x, confirmedX, info) {
+var author$project$Main$viewAudioInfo = F2(
+	function (model, info) {
 		return A2(
 			mdgriffith$elm_ui$Element$column,
 			_List_fromArray(
@@ -10548,7 +10581,7 @@ var author$project$Main$viewAudioInfo = F4(
 								mdgriffith$elm_ui$Element$el,
 								_List_Nil,
 								mdgriffith$elm_ui$Element$html(
-									A3(author$project$Main$viewWaveform, x, confirmedX, info.channelData))),
+									A3(author$project$Main$viewWaveform, model.mousePos, model.confirmedX, info.channelData))),
 								A2(
 								mdgriffith$elm_ui$Element$row,
 								_List_fromArray(
@@ -10909,7 +10942,7 @@ var author$project$Main$view = function (model) {
 			mdgriffith$elm_ui$Element$text('...'),
 			A2(
 				elm$core$Maybe$map,
-				A3(author$project$Main$viewAudioInfo, model, model.pos.x, model.confirmedX),
+				author$project$Main$viewAudioInfo(model),
 				model.audioInfo)));
 };
 var elm$browser$Browser$External = function (a) {
