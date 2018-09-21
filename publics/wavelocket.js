@@ -4326,6 +4326,7 @@ function _Browser_load(url)
 		}
 	}));
 }
+var author$project$Main$Unconfirmed = {$: 'Unconfirmed'};
 var elm$core$Array$branchFactor = 32;
 var elm$core$Array$Array_elm_builtin = F4(
 	function (a, b, c, d) {
@@ -4806,7 +4807,7 @@ var author$project$Main$decodeUri = _Platform_outgoingPort('decodeUri', elm$json
 var elm$core$Platform$Cmd$batch = _Platform_batch;
 var author$project$Main$init = function (waveUri) {
 	return _Utils_Tuple2(
-		{audioInfo: elm$core$Maybe$Nothing, confirmedX: elm$core$Maybe$Nothing, error: '', mousePos: elm$core$Maybe$Nothing, played: false, uri: waveUri, vote: elm$core$Maybe$Nothing},
+		{audioInfo: elm$core$Maybe$Nothing, confirmedX: elm$core$Maybe$Nothing, error: '', mousePos: elm$core$Maybe$Nothing, played: false, uri: waveUri, vote: author$project$Main$Unconfirmed},
 		elm$core$Platform$Cmd$batch(
 			_List_fromArray(
 				[
@@ -4825,6 +4826,9 @@ var author$project$Main$subscriptions = function (_n0) {
 			[
 				author$project$Main$audioDecoded(author$project$Main$AudioDecoded)
 			]));
+};
+var author$project$Main$ConfirmedPositive = function (a) {
+	return {$: 'ConfirmedPositive', a: a};
 };
 var author$project$Main$AudioInfo = F4(
 	function (channelData, buffer, sampleRate, length) {
@@ -5033,18 +5037,23 @@ var author$project$Main$update = F2(
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{
-							vote: elm$core$Maybe$Just(answer)
-						}),
+						{vote: answer}),
 					elm$core$Platform$Cmd$none);
 			case 'Reset':
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{vote: elm$core$Maybe$Nothing}),
+						{vote: author$project$Main$Unconfirmed}),
 					elm$core$Platform$Cmd$none);
 			case 'Confirm':
-				return _Utils_Tuple2(m, elm$core$Platform$Cmd$none);
+				var x = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						m,
+						{
+							vote: author$project$Main$ConfirmedPositive(x)
+						}),
+					elm$core$Platform$Cmd$none);
 			default:
 				return _Utils_Tuple2(
 					_Utils_update(
@@ -5053,7 +5062,9 @@ var author$project$Main$update = F2(
 					elm$core$Platform$Cmd$none);
 		}
 	});
-var author$project$Main$Confirm = {$: 'Confirm'};
+var author$project$Main$Confirm = function (a) {
+	return {$: 'Confirm', a: a};
+};
 var author$project$Main$No = {$: 'No'};
 var author$project$Main$PlayFull = {$: 'PlayFull'};
 var author$project$Main$Reset = {$: 'Reset'};
@@ -10572,9 +10583,8 @@ var author$project$Main$viewAudioInfo = F2(
 				]),
 			function () {
 				var _n0 = model.vote;
-				if (_n0.$ === 'Just') {
-					if (_n0.a.$ === 'Yes') {
-						var _n1 = _n0.a;
+				switch (_n0.$) {
+					case 'Yes':
 						return _List_fromArray(
 							[
 								A2(
@@ -10592,8 +10602,9 @@ var author$project$Main$viewAudioInfo = F2(
 								_List_fromArray(
 									[
 										function () {
-										var _n2 = model.confirmedX;
-										if (_n2.$ === 'Just') {
+										var _n1 = model.confirmedX;
+										if (_n1.$ === 'Just') {
+											var x = _n1.a;
 											return A2(
 												mdgriffith$elm_ui$Element$column,
 												_List_Nil,
@@ -10602,7 +10613,8 @@ var author$project$Main$viewAudioInfo = F2(
 														author$project$Main$greenWhiteButton(
 														{
 															label: mdgriffith$elm_ui$Element$text('Confirm'),
-															onPress: elm$core$Maybe$Just(author$project$Main$Confirm)
+															onPress: elm$core$Maybe$Just(
+																author$project$Main$Confirm(x))
 														})
 													]));
 										} else {
@@ -10616,8 +10628,7 @@ var author$project$Main$viewAudioInfo = F2(
 										})
 									]))
 							]);
-					} else {
-						var _n3 = _n0.a;
+					case 'No':
 						return _List_fromArray(
 							[
 								mdgriffith$elm_ui$Element$text('Negative'),
@@ -10627,42 +10638,51 @@ var author$project$Main$viewAudioInfo = F2(
 									onPress: elm$core$Maybe$Just(author$project$Main$Reset)
 								})
 							]);
-					}
-				} else {
-					return _List_fromArray(
-						[
-							A2(
-							mdgriffith$elm_ui$Element$el,
-							_List_fromArray(
-								[mdgriffith$elm_ui$Element$centerX]),
-							author$project$Main$greenWhiteButton(
+					case 'ConfirmedPositive':
+						return _List_fromArray(
+							[
+								mdgriffith$elm_ui$Element$text('Positive'),
+								author$project$Main$secondaryButton(
 								{
-									label: mdgriffith$elm_ui$Element$text('Play ▶'),
-									onPress: elm$core$Maybe$Just(author$project$Main$PlayFull)
-								})),
-							model.played ? A2(
-							mdgriffith$elm_ui$Element$row,
-							_List_fromArray(
-								[
-									mdgriffith$elm_ui$Element$centerX,
-									mdgriffith$elm_ui$Element$spacing(12)
-								]),
-							_List_fromArray(
-								[
-									author$project$Main$greenWhiteButton(
+									label: mdgriffith$elm_ui$Element$text('Undo'),
+									onPress: elm$core$Maybe$Just(author$project$Main$Reset)
+								})
+							]);
+					default:
+						return _List_fromArray(
+							[
+								A2(
+								mdgriffith$elm_ui$Element$el,
+								_List_fromArray(
+									[mdgriffith$elm_ui$Element$centerX]),
+								author$project$Main$greenWhiteButton(
 									{
-										label: mdgriffith$elm_ui$Element$text('Yes'),
-										onPress: elm$core$Maybe$Just(
-											author$project$Main$Vote(author$project$Main$Yes))
-									}),
-									author$project$Main$greenWhiteButton(
-									{
-										label: mdgriffith$elm_ui$Element$text('No'),
-										onPress: elm$core$Maybe$Just(
-											author$project$Main$Vote(author$project$Main$No))
-									})
-								])) : mdgriffith$elm_ui$Element$none
-						]);
+										label: mdgriffith$elm_ui$Element$text('Play ▶'),
+										onPress: elm$core$Maybe$Just(author$project$Main$PlayFull)
+									})),
+								model.played ? A2(
+								mdgriffith$elm_ui$Element$row,
+								_List_fromArray(
+									[
+										mdgriffith$elm_ui$Element$centerX,
+										mdgriffith$elm_ui$Element$spacing(12)
+									]),
+								_List_fromArray(
+									[
+										author$project$Main$greenWhiteButton(
+										{
+											label: mdgriffith$elm_ui$Element$text('Yes'),
+											onPress: elm$core$Maybe$Just(
+												author$project$Main$Vote(author$project$Main$Yes))
+										}),
+										author$project$Main$greenWhiteButton(
+										{
+											label: mdgriffith$elm_ui$Element$text('No'),
+											onPress: elm$core$Maybe$Just(
+												author$project$Main$Vote(author$project$Main$No))
+										})
+									])) : mdgriffith$elm_ui$Element$none
+							]);
 				}
 			}());
 	});
