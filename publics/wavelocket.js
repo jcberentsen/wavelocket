@@ -10423,6 +10423,10 @@ var author$project$Main$viewAudioInfo = F4(
 				}
 			}());
 	});
+var mdgriffith$elm_ui$Internal$Model$Fill = function (a) {
+	return {$: 'Fill', a: a};
+};
+var mdgriffith$elm_ui$Element$fill = mdgriffith$elm_ui$Internal$Model$Fill(1);
 var mdgriffith$elm_ui$Internal$Model$OnlyDynamic = F2(
 	function (a, b) {
 		return {$: 'OnlyDynamic', a: a, b: b};
@@ -10693,10 +10697,24 @@ var mdgriffith$elm_ui$Element$layoutWith = F3(
 	});
 var mdgriffith$elm_ui$Element$layout = mdgriffith$elm_ui$Element$layoutWith(
 	{options: _List_Nil});
+var mdgriffith$elm_ui$Internal$Model$Min = F2(
+	function (a, b) {
+		return {$: 'Min', a: a, b: b};
+	});
+var mdgriffith$elm_ui$Element$minimum = F2(
+	function (i, l) {
+		return A2(mdgriffith$elm_ui$Internal$Model$Min, i, l);
+	});
 var author$project$Main$view = function (model) {
 	return A2(
 		mdgriffith$elm_ui$Element$layout,
-		_List_Nil,
+		_List_fromArray(
+			[
+				mdgriffith$elm_ui$Element$width(
+				A2(mdgriffith$elm_ui$Element$minimum, 800, mdgriffith$elm_ui$Element$fill)),
+				mdgriffith$elm_ui$Element$height(
+				A2(mdgriffith$elm_ui$Element$minimum, 200, mdgriffith$elm_ui$Element$fill))
+			]),
 		A2(
 			mdgriffith$elm_ui$Element$column,
 			_List_Nil,
