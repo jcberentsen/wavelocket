@@ -32,6 +32,7 @@ import Element.Input exposing (button)
 import Html exposing (Html)
 import Json.Decode as D
 import Json.Encode as E
+import Round
 import Svg exposing (Svg, polyline, svg)
 import Svg.Attributes as Svg exposing (points, stroke, viewBox)
 import Svg.Events as Svg
@@ -82,6 +83,13 @@ type Answer
     | No
 
 
+type alias Placement =
+    { mouseX : Int
+    , endSec : Float
+    , audioInfo : AudioInfo
+    }
+
+
 type alias Model =
     { uri : String
     , field : D.Value
@@ -89,8 +97,8 @@ type alias Model =
     , error : String
     , played : Bool
     , vote : Answer
-    , mousePos : Maybe Pos
-    , confirmedX : Maybe Int
+    , mousePos : Maybe MousePos
+    , placement : Maybe Placement
     }
 
 
@@ -109,7 +117,7 @@ init flags =
       , error = ""
       , vote = Unconfirmed
       , mousePos = Nothing
-      , confirmedX = Nothing
+      , placement = Nothing
       }
     , Cmd.batch
         [ decodeUri flags.uri
@@ -131,9 +139,9 @@ subscriptions _ =
 
 type Msg
     = AudioDecoded D.Value
-    | PlayInterval Pos
+    | PlayInterval AudioInfo MousePos
     | PlayFull
-    | Move Pos
+    | Move MousePos
     | Vote Answer
     | Confirm Float
     | Reset
@@ -147,7 +155,6 @@ update msg m =
                 Ok audioInfo ->
                     ( { m | audioInfo = Just audioInfo }
                     , Cmd.none
-                      -- playBuffer ( audioInfo, 0.5, 1.0 )
                     )
 
                 Err err ->
@@ -155,42 +162,28 @@ update msg m =
                     , Cmd.none
                     )
 
-        PlayInterval pos ->
+        PlayInterval audioInfo pos ->
             let
-                clampedPos =
-                    { x = max 1 (min (pos.x - 100) 600), y = pos.y }
+                placement =
+                    placementFromMousePos audioInfo pos
             in
-            ( { m | confirmedX = Just clampedPos.x }
-            , case m.audioInfo of
-                Just audioBuffer ->
-                    let
-                        end =
-                            posInBuffer clampedPos.x audioBuffer
-
-                        start =
-                            max 0 <| end - 1.2
-                    in
-                    playBuffer ( audioBuffer, start, end - start )
-
-                -- TODO play from user indicated inverval
-                _ ->
-                    Cmd.none
+            ( { m | placement = Just placement }
+            , play placement
             )
 
         PlayFull ->
             ( { m | played = True }
             , case m.audioInfo of
-                Just audioBuffer ->
+                Just audioInfo ->
                     -- Note: currently limit playback to initial 20 seconds
-                    playBuffer ( audioBuffer, 0.0, 20.0 )
+                    playBuffer ( audioInfo, 0.0, 20.0 )
 
                 _ ->
                     Cmd.none
             )
 
         Move pos ->
-            ( { m | mousePos = Just { x = max 1 (min (pos.x - 100) 600), y = pos.y } }
-              -- TODO DRY this
+            ( { m | mousePos = Just (clampPos pos) }
             , Cmd.none
             )
 
@@ -208,10 +201,10 @@ update msg m =
             , Cmd.none
             )
 
-        Confirm x ->
-            ( { m | vote = ConfirmedPositive x }
+        Confirm endsAtSec ->
+            ( { m | vote = ConfirmedPositive endsAtSec }
             , Cmd.batch
-                [ saveInterval ( m.field, x / 600 )
+                [ saveInterval ( m.field, endsAtSec )
                 ]
             )
 
@@ -221,9 +214,32 @@ update msg m =
             )
 
 
-posInBuffer : Int -> AudioInfo -> Float
-posInBuffer x audioBuffer =
-    (toFloat x / 600.0) * toFloat audioBuffer.length / audioBuffer.sampleRate
+
+-- clampedX =
+--     clampPos pos |> .mouseX
+
+
+placementFromMousePos audioInfo mousePos =
+    let
+        cx =
+            clampPos mousePos |> .mouseX
+    in
+    { mouseX = cx
+    , endSec = mouseXToSeconds cx audioInfo
+    , audioInfo = audioInfo
+    }
+
+
+play placement =
+    let
+        end =
+            placement.endSec
+
+        -- play 1.2 seconds before end marker
+        start =
+            max 0 <| end - 1.2
+    in
+    playBuffer ( placement.audioInfo, start, end - start )
 
 
 
@@ -231,22 +247,23 @@ posInBuffer x audioBuffer =
 
 
 view model =
-    Element.layout [ width (fill |> minimum 800), height (fill |> minimum 200) ] <|
+    Element.layout [ centerX, width (fill |> minimum 800), height (fill |> minimum 200) ] <|
         Maybe.withDefault (text "...") <|
             Maybe.map (viewAudioInfo model) model.audioInfo
 
 
 viewAudioInfo : Model -> AudioInfo -> Element Msg
-viewAudioInfo model info =
+viewAudioInfo model audioInfo =
     column [ centerX, spacing 12 ] <|
         case model.vote of
             Yes ->
-                [ el [] <| html <| viewWaveform model.mousePos model.confirmedX info.channelData
+                [ el [] <| html <| viewWaveform model.mousePos model.placement audioInfo
+                , Maybe.map (.endSec >> Round.round 2 >> (\sec -> el [ width fill, Font.center ] <| text ("Phrase end marked at " ++ sec ++ " seconds"))) model.placement |> Maybe.withDefault none
                 , row [ centerX, spacing 12 ]
-                    [ case model.confirmedX of
-                        Just x ->
+                    [ case model.placement of
+                        Just p ->
                             column []
-                                [ greenWhiteButton { onPress = Just (Confirm (toFloat x)), label = text "Confirm" } ]
+                                [ greenWhiteButton { onPress = Just (Confirm p.endSec), label = text "Confirm" } ]
 
                         _ ->
                             Element.none
@@ -255,13 +272,13 @@ viewAudioInfo model info =
                 ]
 
             No ->
-                [ text "Negative"
-                , secondaryButton { onPress = Just Reset, label = text "Undo" }
+                [ text "No audible key phrase"
+                , el [ centerX ] <| secondaryButton { onPress = Just Reset, label = text "Undo" }
                 ]
 
-            ConfirmedPositive _ ->
-                [ text "Positive"
-                , secondaryButton { onPress = Just Reset, label = text "Undo" }
+            ConfirmedPositive sec ->
+                [ text <| "Key phrase ending after " ++ Round.round 2 sec ++ " seconds"
+                , el [ centerX ] <| secondaryButton { onPress = Just Reset, label = text "Undo" }
                 ]
 
             Unconfirmed ->
@@ -279,8 +296,8 @@ viewAudioInfo model info =
                 ]
 
 
-viewWaveform : Maybe Pos -> Maybe Int -> Array Float -> Html Msg
-viewWaveform mousePos confirmedX data =
+viewWaveform : Maybe MousePos -> Maybe Placement -> AudioInfo -> Html Msg
+viewWaveform mousePos placement audioInfo =
     let
         linePoints x =
             pToStr (x - 20) 0 ++ " " ++ pToStr x 60 ++ " " ++ pToStr (x - 20) 120
@@ -292,20 +309,27 @@ viewWaveform mousePos confirmedX data =
         [ Svg.width "800"
         , Svg.height "120"
         , viewBox "0 0 800 120"
-        , Svg.on "click" (D.map PlayInterval getClickPos)
-        , Svg.on "mousemove" (D.map Move getClickPos)
+        , Svg.on "click" (D.map (PlayInterval audioInfo) getMousePos)
+        , Svg.on "mousemove" (D.map Move getMousePos)
         , Svg.onMouseOut Leave
         ]
-        [ Svg.lazy waveformSvg data
-        , Maybe.map (.x >> svgBrack "darkred") mousePos |> Maybe.withDefault (Svg.text "") -- Svg.empty?
-        , Maybe.map (svgBrack "green") confirmedX |> Maybe.withDefault (Svg.text "")
+        [ Svg.lazy waveformSvg audioInfo.channelData
+        , Maybe.map (.mouseX >> svgBrack "darkred") mousePos |> Maybe.withDefault (Svg.text "")
+        , Maybe.map (.mouseX >> svgBrack "green") placement |> Maybe.withDefault (Svg.text "")
         ]
 
 
-type alias Pos =
-    { x : Int
-    , y : Int
+type alias MousePos =
+    { mouseX : Int
+    , mouseY : Int
     }
+
+
+getMousePos : D.Decoder MousePos
+getMousePos =
+    D.map2 MousePos
+        (D.at [ "offsetX" ] D.int)
+        (D.at [ "offsetY" ] D.int)
 
 
 pToStr x y =
@@ -317,13 +341,6 @@ sampleToString targetWidth totalLen i v =
     pToStr
         (floor (toFloat targetWidth * toFloat i / toFloat totalLen))
         (floor (60 + (60 * 3 * v)))
-
-
-getClickPos : D.Decoder Pos
-getClickPos =
-    D.map2 Pos
-        (D.at [ "offsetX" ] D.int)
-        (D.at [ "offsetY" ] D.int)
 
 
 waveformSvg : Array Float -> Svg Msg
@@ -393,3 +410,16 @@ reactor =
         , update = \msg m -> first <| update msg m
         , view = view
         }
+
+
+clamp ( low, high ) x =
+    max low <| min x high
+
+
+clampPos pos =
+    { pos | mouseX = clamp ( 1, 600 ) <| pos.mouseX - 100 }
+
+
+mouseXToSeconds : Int -> AudioInfo -> Float
+mouseXToSeconds x audioBuffer =
+    (toFloat (audioBuffer.length * x) / 600.0) / audioBuffer.sampleRate

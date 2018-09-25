@@ -11,7 +11,8 @@
             "elm/html": "1.0.0",
             "elm/json": "1.0.0",
             "elm/svg": "1.0.1",
-            "mdgriffith/elm-ui": "1.0.0"
+            "mdgriffith/elm-ui": "1.0.0",
+            "myrho/elm-round": "1.0.4"
         },
         "indirect": {
             "elm/time": "1.0.0",
