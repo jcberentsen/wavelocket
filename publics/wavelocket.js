@@ -4807,7 +4807,7 @@ var author$project$Main$decodeUri = _Platform_outgoingPort('decodeUri', elm$json
 var elm$core$Platform$Cmd$batch = _Platform_batch;
 var author$project$Main$init = function (flags) {
 	return _Utils_Tuple2(
-		{audioInfo: elm$core$Maybe$Nothing, confirmedX: elm$core$Maybe$Nothing, error: '', field: flags.field, mousePos: elm$core$Maybe$Nothing, played: false, uri: flags.uri, vote: author$project$Main$Unconfirmed},
+		{audioInfo: elm$core$Maybe$Nothing, error: '', field: flags.field, mousePos: elm$core$Maybe$Nothing, placement: elm$core$Maybe$Nothing, played: false, uri: flags.uri, vote: author$project$Main$Unconfirmed},
 		elm$core$Platform$Cmd$batch(
 			_List_fromArray(
 				[
@@ -4831,6 +4831,29 @@ var author$project$Main$ConfirmedPositive = function (a) {
 	return {$: 'ConfirmedPositive', a: a};
 };
 var author$project$Main$No = {$: 'No'};
+var elm$core$Basics$min = F2(
+	function (x, y) {
+		return (_Utils_cmp(x, y) < 0) ? x : y;
+	});
+var author$project$Main$clamp = F2(
+	function (_n0, x) {
+		var low = _n0.a;
+		var high = _n0.b;
+		return A2(
+			elm$core$Basics$max,
+			low,
+			A2(elm$core$Basics$min, x, high));
+	});
+var author$project$Main$clampPos = function (pos) {
+	return _Utils_update(
+		pos,
+		{
+			mouseX: A2(
+				author$project$Main$clamp,
+				_Utils_Tuple2(1, 600),
+				pos.mouseX - 100)
+		});
+};
 var author$project$Main$AudioInfo = F4(
 	function (channelData, buffer, sampleRate, length) {
 		return {buffer: buffer, channelData: channelData, length: length, sampleRate: sampleRate};
@@ -4850,6 +4873,19 @@ var author$project$Main$decodeAudioInfo = A5(
 	A2(elm$json$Json$Decode$field, 'buffer', elm$json$Json$Decode$value),
 	A2(elm$json$Json$Decode$field, 'sampleRate', elm$json$Json$Decode$float),
 	A2(elm$json$Json$Decode$field, 'length', elm$json$Json$Decode$int));
+var author$project$Main$mouseXToSeconds = F2(
+	function (x, audioBuffer) {
+		return ((audioBuffer.length * x) / 600.0) / audioBuffer.sampleRate;
+	});
+var author$project$Main$placementFromMousePos = F2(
+	function (audioInfo, mousePos) {
+		var cx = author$project$Main$clampPos(mousePos).mouseX;
+		return {
+			audioInfo: audioInfo,
+			endSec: A2(author$project$Main$mouseXToSeconds, cx, audioInfo),
+			mouseX: cx
+		};
+	});
 var elm$core$Basics$identity = function (x) {
 	return x;
 };
@@ -4940,10 +4976,12 @@ var author$project$Main$playBuffer = _Platform_outgoingPort(
 					elm$json$Json$Encode$float(c)
 				]));
 	});
-var author$project$Main$posInBuffer = F2(
-	function (x, audioBuffer) {
-		return ((x / 600.0) * audioBuffer.length) / audioBuffer.sampleRate;
-	});
+var author$project$Main$play = function (placement) {
+	var end = placement.endSec;
+	var start = A2(elm$core$Basics$max, 0, end - 1.2);
+	return author$project$Main$playBuffer(
+		_Utils_Tuple3(placement.audioInfo, start, end - start));
+};
 var author$project$Main$saveInterval = _Platform_outgoingPort(
 	'saveInterval',
 	function ($) {
@@ -4957,10 +4995,6 @@ var author$project$Main$saveInterval = _Platform_outgoingPort(
 					elm$core$Basics$identity(a),
 					elm$json$Json$Encode$float(b)
 				]));
-	});
-var elm$core$Basics$min = F2(
-	function (x, y) {
-		return (_Utils_cmp(x, y) < 0) ? x : y;
 	});
 var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
 var elm$json$Json$Decode$decodeValue = _Json_run;
@@ -4990,43 +5024,27 @@ var author$project$Main$update = F2(
 						elm$core$Platform$Cmd$none);
 				}
 			case 'PlayInterval':
-				var pos = msg.a;
-				var clampedPos = {
-					x: A2(
-						elm$core$Basics$max,
-						1,
-						A2(elm$core$Basics$min, pos.x - 100, 600)),
-					y: pos.y
-				};
+				var audioInfo = msg.a;
+				var pos = msg.b;
+				var placement = A2(author$project$Main$placementFromMousePos, audioInfo, pos);
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
 						{
-							confirmedX: elm$core$Maybe$Just(clampedPos.x)
+							placement: elm$core$Maybe$Just(placement)
 						}),
-					function () {
-						var _n2 = m.audioInfo;
-						if (_n2.$ === 'Just') {
-							var audioBuffer = _n2.a;
-							var end = A2(author$project$Main$posInBuffer, clampedPos.x, audioBuffer);
-							var start = A2(elm$core$Basics$max, 0, end - 1.2);
-							return author$project$Main$playBuffer(
-								_Utils_Tuple3(audioBuffer, start, end - start));
-						} else {
-							return elm$core$Platform$Cmd$none;
-						}
-					}());
+					author$project$Main$play(placement));
 			case 'PlayFull':
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
 						{played: true}),
 					function () {
-						var _n3 = m.audioInfo;
-						if (_n3.$ === 'Just') {
-							var audioBuffer = _n3.a;
+						var _n2 = m.audioInfo;
+						if (_n2.$ === 'Just') {
+							var audioInfo = _n2.a;
 							return author$project$Main$playBuffer(
-								_Utils_Tuple3(audioBuffer, 0.0, 20.0));
+								_Utils_Tuple3(audioInfo, 0.0, 20.0));
 						} else {
 							return elm$core$Platform$Cmd$none;
 						}
@@ -5038,13 +5056,7 @@ var author$project$Main$update = F2(
 						m,
 						{
 							mousePos: elm$core$Maybe$Just(
-								{
-									x: A2(
-										elm$core$Basics$max,
-										1,
-										A2(elm$core$Basics$min, pos.x - 100, 600)),
-									y: pos.y
-								})
+								author$project$Main$clampPos(pos))
 						}),
 					elm$core$Platform$Cmd$none);
 			case 'Vote':
@@ -5062,18 +5074,18 @@ var author$project$Main$update = F2(
 						{vote: author$project$Main$Unconfirmed}),
 					elm$core$Platform$Cmd$none);
 			case 'Confirm':
-				var x = msg.a;
+				var endsAtSec = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
 						{
-							vote: author$project$Main$ConfirmedPositive(x)
+							vote: author$project$Main$ConfirmedPositive(endsAtSec)
 						}),
 					elm$core$Platform$Cmd$batch(
 						_List_fromArray(
 							[
 								author$project$Main$saveInterval(
-								_Utils_Tuple2(m.field, x / 600))
+								_Utils_Tuple2(m.field, endsAtSec))
 							])));
 			default:
 				return _Utils_Tuple2(
@@ -10305,20 +10317,21 @@ var author$project$Main$Leave = {$: 'Leave'};
 var author$project$Main$Move = function (a) {
 	return {$: 'Move', a: a};
 };
-var author$project$Main$PlayInterval = function (a) {
-	return {$: 'PlayInterval', a: a};
-};
-var author$project$Main$Pos = F2(
-	function (x, y) {
-		return {x: x, y: y};
+var author$project$Main$PlayInterval = F2(
+	function (a, b) {
+		return {$: 'PlayInterval', a: a, b: b};
+	});
+var author$project$Main$MousePos = F2(
+	function (mouseX, mouseY) {
+		return {mouseX: mouseX, mouseY: mouseY};
 	});
 var elm$json$Json$Decode$at = F2(
 	function (fields, decoder) {
 		return A3(elm$core$List$foldr, elm$json$Json$Decode$field, decoder, fields);
 	});
-var author$project$Main$getClickPos = A3(
+var author$project$Main$getMousePos = A3(
 	elm$json$Json$Decode$map2,
-	author$project$Main$Pos,
+	author$project$Main$MousePos,
 	A2(
 		elm$json$Json$Decode$at,
 		_List_fromArray(
@@ -10439,7 +10452,7 @@ var elm$svg$Svg$Events$onMouseOut = function (msg) {
 var elm$virtual_dom$VirtualDom$lazy = _VirtualDom_lazy;
 var elm$svg$Svg$Lazy$lazy = elm$virtual_dom$VirtualDom$lazy;
 var author$project$Main$viewWaveform = F3(
-	function (mousePos, confirmedX, data) {
+	function (mousePos, placement, audioInfo) {
 		var linePoints = function (x) {
 			return A2(author$project$Main$pToStr, x - 20, 0) + (' ' + (A2(author$project$Main$pToStr, x, 60) + (' ' + A2(author$project$Main$pToStr, x - 20, 120))));
 		};
@@ -10466,16 +10479,19 @@ var author$project$Main$viewWaveform = F3(
 					A2(
 					elm$svg$Svg$Events$on,
 					'click',
-					A2(elm$json$Json$Decode$map, author$project$Main$PlayInterval, author$project$Main$getClickPos)),
+					A2(
+						elm$json$Json$Decode$map,
+						author$project$Main$PlayInterval(audioInfo),
+						author$project$Main$getMousePos)),
 					A2(
 					elm$svg$Svg$Events$on,
 					'mousemove',
-					A2(elm$json$Json$Decode$map, author$project$Main$Move, author$project$Main$getClickPos)),
+					A2(elm$json$Json$Decode$map, author$project$Main$Move, author$project$Main$getMousePos)),
 					elm$svg$Svg$Events$onMouseOut(author$project$Main$Leave)
 				]),
 			_List_fromArray(
 				[
-					A2(elm$svg$Svg$Lazy$lazy, author$project$Main$waveformSvg, data),
+					A2(elm$svg$Svg$Lazy$lazy, author$project$Main$waveformSvg, audioInfo.channelData),
 					A2(
 					elm$core$Maybe$withDefault,
 					elm$svg$Svg$text(''),
@@ -10484,7 +10500,7 @@ var author$project$Main$viewWaveform = F3(
 						A2(
 							elm$core$Basics$composeR,
 							function ($) {
-								return $.x;
+								return $.mouseX;
 							},
 							svgBrack('darkred')),
 						mousePos)),
@@ -10493,8 +10509,13 @@ var author$project$Main$viewWaveform = F3(
 					elm$svg$Svg$text(''),
 					A2(
 						elm$core$Maybe$map,
-						svgBrack('green'),
-						confirmedX))
+						A2(
+							elm$core$Basics$composeR,
+							function ($) {
+								return $.mouseX;
+							},
+							svgBrack('green')),
+						placement))
 				]));
 	});
 var mdgriffith$elm_ui$Internal$Model$AlignX = function (a) {
@@ -10539,6 +10560,10 @@ var mdgriffith$elm_ui$Element$el = F2(
 				_List_fromArray(
 					[child])));
 	});
+var mdgriffith$elm_ui$Internal$Model$Fill = function (a) {
+	return {$: 'Fill', a: a};
+};
+var mdgriffith$elm_ui$Element$fill = mdgriffith$elm_ui$Internal$Model$Fill(1);
 var elm$core$Basics$always = F2(
 	function (a, _n0) {
 		return a;
@@ -10592,8 +10617,251 @@ var mdgriffith$elm_ui$Internal$Model$Text = function (a) {
 var mdgriffith$elm_ui$Element$text = function (content) {
 	return mdgriffith$elm_ui$Internal$Model$Text(content);
 };
+var mdgriffith$elm_ui$Internal$Flag$fontAlignment = mdgriffith$elm_ui$Internal$Flag$flag(12);
+var mdgriffith$elm_ui$Element$Font$center = A2(mdgriffith$elm_ui$Internal$Model$Class, mdgriffith$elm_ui$Internal$Flag$fontAlignment, mdgriffith$elm_ui$Internal$Style$classes.textCenter);
+var elm$core$Basics$abs = function (n) {
+	return (n < 0) ? (-n) : n;
+};
+var elm$core$Basics$isInfinite = _Basics_isInfinite;
+var elm$core$Basics$isNaN = _Basics_isNaN;
+var elm$core$String$length = _String_length;
+var elm$core$String$cons = _String_cons;
+var elm$core$String$fromChar = function (_char) {
+	return A2(elm$core$String$cons, _char, '');
+};
+var elm$core$Bitwise$shiftRightBy = _Bitwise_shiftRightBy;
+var elm$core$String$repeatHelp = F3(
+	function (n, chunk, result) {
+		return (n <= 0) ? result : A3(
+			elm$core$String$repeatHelp,
+			n >> 1,
+			_Utils_ap(chunk, chunk),
+			(!(n & 1)) ? result : _Utils_ap(result, chunk));
+	});
+var elm$core$String$repeat = F2(
+	function (n, chunk) {
+		return A3(elm$core$String$repeatHelp, n, chunk, '');
+	});
+var elm$core$String$padRight = F3(
+	function (n, _char, string) {
+		return _Utils_ap(
+			string,
+			A2(
+				elm$core$String$repeat,
+				n - elm$core$String$length(string),
+				elm$core$String$fromChar(_char)));
+	});
+var elm$core$String$reverse = _String_reverse;
+var elm$core$String$slice = _String_slice;
+var elm$core$Basics$neq = _Utils_notEqual;
+var elm$core$String$foldr = _String_foldr;
+var elm$core$String$toList = function (string) {
+	return A3(elm$core$String$foldr, elm$core$List$cons, _List_Nil, string);
+};
+var myrho$elm_round$Round$addSign = F2(
+	function (signed, str) {
+		var isNotZero = A2(
+			elm$core$List$any,
+			function (c) {
+				return (!_Utils_eq(
+					c,
+					_Utils_chr('0'))) && (!_Utils_eq(
+					c,
+					_Utils_chr('.')));
+			},
+			elm$core$String$toList(str));
+		return _Utils_ap(
+			(signed && isNotZero) ? '-' : '',
+			str);
+	});
+var elm$core$Char$fromCode = _Char_fromCode;
+var myrho$elm_round$Round$increaseNum = function (_n0) {
+	var head = _n0.a;
+	var tail = _n0.b;
+	if (_Utils_eq(
+		head,
+		_Utils_chr('9'))) {
+		var _n1 = elm$core$String$uncons(tail);
+		if (_n1.$ === 'Nothing') {
+			return '01';
+		} else {
+			var headtail = _n1.a;
+			return A2(
+				elm$core$String$cons,
+				_Utils_chr('0'),
+				myrho$elm_round$Round$increaseNum(headtail));
+		}
+	} else {
+		var c = elm$core$Char$toCode(head);
+		return ((c >= 48) && (c < 57)) ? A2(
+			elm$core$String$cons,
+			elm$core$Char$fromCode(c + 1),
+			tail) : '0';
+	}
+};
+var myrho$elm_round$Round$splitComma = function (str) {
+	var _n0 = A2(elm$core$String$split, '.', str);
+	if (_n0.b) {
+		if (_n0.b.b) {
+			var before = _n0.a;
+			var _n1 = _n0.b;
+			var after = _n1.a;
+			return _Utils_Tuple2(before, after);
+		} else {
+			var before = _n0.a;
+			return _Utils_Tuple2(before, '0');
+		}
+	} else {
+		return _Utils_Tuple2('0', '0');
+	}
+};
+var elm$core$String$dropLeft = F2(
+	function (n, string) {
+		return (n < 1) ? string : A3(
+			elm$core$String$slice,
+			n,
+			elm$core$String$length(string),
+			string);
+	});
+var elm$core$String$startsWith = _String_startsWith;
+var elm$core$String$toInt = _String_toInt;
+var myrho$elm_round$Round$toDecimal = function (fl) {
+	var _n0 = A2(
+		elm$core$String$split,
+		'e',
+		elm$core$String$fromFloat(
+			elm$core$Basics$abs(fl)));
+	if (_n0.b) {
+		if (_n0.b.b) {
+			var num = _n0.a;
+			var _n1 = _n0.b;
+			var exp = _n1.a;
+			var e = A2(
+				elm$core$Maybe$withDefault,
+				0,
+				elm$core$String$toInt(
+					A2(elm$core$String$startsWith, '+', exp) ? A2(elm$core$String$dropLeft, 1, exp) : exp));
+			var _n2 = myrho$elm_round$Round$splitComma(num);
+			var before = _n2.a;
+			var after = _n2.b;
+			var total = _Utils_ap(before, after);
+			var zeroed = (e < 0) ? A2(
+				elm$core$Maybe$withDefault,
+				'0',
+				A2(
+					elm$core$Maybe$map,
+					function (_n3) {
+						var a = _n3.a;
+						var b = _n3.b;
+						return a + ('.' + b);
+					},
+					A2(
+						elm$core$Maybe$map,
+						elm$core$Tuple$mapFirst(elm$core$String$fromChar),
+						elm$core$String$uncons(
+							_Utils_ap(
+								A2(
+									elm$core$String$repeat,
+									elm$core$Basics$abs(e),
+									'0'),
+								total))))) : A3(
+				elm$core$String$padRight,
+				e + 1,
+				_Utils_chr('0'),
+				total);
+			return _Utils_ap(
+				(fl < 0) ? '-' : '',
+				zeroed);
+		} else {
+			var num = _n0.a;
+			return _Utils_ap(
+				(fl < 0) ? '-' : '',
+				num);
+		}
+	} else {
+		return '';
+	}
+};
+var myrho$elm_round$Round$roundFun = F3(
+	function (functor, s, fl) {
+		if (elm$core$Basics$isInfinite(fl) || elm$core$Basics$isNaN(fl)) {
+			return elm$core$String$fromFloat(fl);
+		} else {
+			var signed = fl < 0;
+			var _n0 = myrho$elm_round$Round$splitComma(
+				myrho$elm_round$Round$toDecimal(
+					elm$core$Basics$abs(fl)));
+			var before = _n0.a;
+			var after = _n0.b;
+			var r = elm$core$String$length(before) + s;
+			var normalized = _Utils_ap(
+				A2(elm$core$String$repeat, (-r) + 1, '0'),
+				A3(
+					elm$core$String$padRight,
+					r,
+					_Utils_chr('0'),
+					_Utils_ap(before, after)));
+			var totalLen = elm$core$String$length(normalized);
+			var roundDigitIndex = A2(elm$core$Basics$max, 1, r);
+			var increase = A2(
+				functor,
+				signed,
+				A3(elm$core$String$slice, roundDigitIndex, totalLen, normalized));
+			var remains = A3(elm$core$String$slice, 0, roundDigitIndex, normalized);
+			var num = increase ? elm$core$String$reverse(
+				A2(
+					elm$core$Maybe$withDefault,
+					'1',
+					A2(
+						elm$core$Maybe$map,
+						myrho$elm_round$Round$increaseNum,
+						elm$core$String$uncons(
+							elm$core$String$reverse(remains))))) : remains;
+			var numLen = elm$core$String$length(num);
+			var numZeroed = (num === '0') ? num : ((s <= 0) ? _Utils_ap(
+				num,
+				A2(
+					elm$core$String$repeat,
+					elm$core$Basics$abs(s),
+					'0')) : ((_Utils_cmp(
+				s,
+				elm$core$String$length(after)) < 0) ? (A3(elm$core$String$slice, 0, numLen - s, num) + ('.' + A3(elm$core$String$slice, numLen - s, numLen, num))) : _Utils_ap(
+				before + '.',
+				A3(
+					elm$core$String$padRight,
+					s,
+					_Utils_chr('0'),
+					after))));
+			return A2(myrho$elm_round$Round$addSign, signed, numZeroed);
+		}
+	});
+var myrho$elm_round$Round$round = myrho$elm_round$Round$roundFun(
+	F2(
+		function (signed, str) {
+			var _n0 = elm$core$String$uncons(str);
+			if (_n0.$ === 'Nothing') {
+				return false;
+			} else {
+				if ('5' === _n0.a.a.valueOf()) {
+					if (_n0.a.b === '') {
+						var _n1 = _n0.a;
+						return !signed;
+					} else {
+						var _n2 = _n0.a;
+						return true;
+					}
+				} else {
+					var _n3 = _n0.a;
+					var _int = _n3.a;
+					return function (i) {
+						return ((i > 53) && signed) || ((i >= 53) && (!signed));
+					}(
+						elm$core$Char$toCode(_int));
+				}
+			}
+		}));
 var author$project$Main$viewAudioInfo = F2(
-	function (model, info) {
+	function (model, audioInfo) {
 		return A2(
 			mdgriffith$elm_ui$Element$column,
 			_List_fromArray(
@@ -10611,7 +10879,31 @@ var author$project$Main$viewAudioInfo = F2(
 								mdgriffith$elm_ui$Element$el,
 								_List_Nil,
 								mdgriffith$elm_ui$Element$html(
-									A3(author$project$Main$viewWaveform, model.mousePos, model.confirmedX, info.channelData))),
+									A3(author$project$Main$viewWaveform, model.mousePos, model.placement, audioInfo))),
+								A2(
+								elm$core$Maybe$withDefault,
+								mdgriffith$elm_ui$Element$none,
+								A2(
+									elm$core$Maybe$map,
+									A2(
+										elm$core$Basics$composeR,
+										function ($) {
+											return $.endSec;
+										},
+										A2(
+											elm$core$Basics$composeR,
+											myrho$elm_round$Round$round(2),
+											function (sec) {
+												return A2(
+													mdgriffith$elm_ui$Element$el,
+													_List_fromArray(
+														[
+															mdgriffith$elm_ui$Element$width(mdgriffith$elm_ui$Element$fill),
+															mdgriffith$elm_ui$Element$Font$center
+														]),
+													mdgriffith$elm_ui$Element$text('Phrase end marked at ' + (sec + ' seconds')));
+											})),
+									model.placement)),
 								A2(
 								mdgriffith$elm_ui$Element$row,
 								_List_fromArray(
@@ -10622,9 +10914,9 @@ var author$project$Main$viewAudioInfo = F2(
 								_List_fromArray(
 									[
 										function () {
-										var _n1 = model.confirmedX;
+										var _n1 = model.placement;
 										if (_n1.$ === 'Just') {
-											var x = _n1.a;
+											var p = _n1.a;
 											return A2(
 												mdgriffith$elm_ui$Element$column,
 												_List_Nil,
@@ -10634,7 +10926,7 @@ var author$project$Main$viewAudioInfo = F2(
 														{
 															label: mdgriffith$elm_ui$Element$text('Confirm'),
 															onPress: elm$core$Maybe$Just(
-																author$project$Main$Confirm(x))
+																author$project$Main$Confirm(p.endSec))
 														})
 													]));
 										} else {
@@ -10651,22 +10943,32 @@ var author$project$Main$viewAudioInfo = F2(
 					case 'No':
 						return _List_fromArray(
 							[
-								mdgriffith$elm_ui$Element$text('Negative'),
+								mdgriffith$elm_ui$Element$text('No audible key phrase'),
+								A2(
+								mdgriffith$elm_ui$Element$el,
+								_List_fromArray(
+									[mdgriffith$elm_ui$Element$centerX]),
 								author$project$Main$secondaryButton(
-								{
-									label: mdgriffith$elm_ui$Element$text('Undo'),
-									onPress: elm$core$Maybe$Just(author$project$Main$Reset)
-								})
+									{
+										label: mdgriffith$elm_ui$Element$text('Undo'),
+										onPress: elm$core$Maybe$Just(author$project$Main$Reset)
+									}))
 							]);
 					case 'ConfirmedPositive':
+						var sec = _n0.a;
 						return _List_fromArray(
 							[
-								mdgriffith$elm_ui$Element$text('Positive'),
+								mdgriffith$elm_ui$Element$text(
+								'Key phrase ending after ' + (A2(myrho$elm_round$Round$round, 2, sec) + ' seconds')),
+								A2(
+								mdgriffith$elm_ui$Element$el,
+								_List_fromArray(
+									[mdgriffith$elm_ui$Element$centerX]),
 								author$project$Main$secondaryButton(
-								{
-									label: mdgriffith$elm_ui$Element$text('Undo'),
-									onPress: elm$core$Maybe$Just(author$project$Main$Reset)
-								})
+									{
+										label: mdgriffith$elm_ui$Element$text('Undo'),
+										onPress: elm$core$Maybe$Just(author$project$Main$Reset)
+									}))
 							]);
 					default:
 						return _List_fromArray(
@@ -10706,10 +11008,6 @@ var author$project$Main$viewAudioInfo = F2(
 				}
 			}());
 	});
-var mdgriffith$elm_ui$Internal$Model$Fill = function (a) {
-	return {$: 'Fill', a: a};
-};
-var mdgriffith$elm_ui$Element$fill = mdgriffith$elm_ui$Internal$Model$Fill(1);
 var mdgriffith$elm_ui$Internal$Model$OnlyDynamic = F2(
 	function (a, b) {
 		return {$: 'OnlyDynamic', a: a, b: b};
@@ -10972,6 +11270,7 @@ var author$project$Main$view = function (model) {
 		mdgriffith$elm_ui$Element$layout,
 		_List_fromArray(
 			[
+				mdgriffith$elm_ui$Element$centerX,
 				mdgriffith$elm_ui$Element$width(
 				A2(mdgriffith$elm_ui$Element$minimum, 800, mdgriffith$elm_ui$Element$fill)),
 				mdgriffith$elm_ui$Element$height(
@@ -11082,17 +11381,6 @@ var elm$core$Task$perform = F2(
 			elm$core$Task$Perform(
 				A2(elm$core$Task$map, toMessage, task)));
 	});
-var elm$core$String$length = _String_length;
-var elm$core$String$slice = _String_slice;
-var elm$core$String$dropLeft = F2(
-	function (n, string) {
-		return (n < 1) ? string : A3(
-			elm$core$String$slice,
-			n,
-			elm$core$String$length(string),
-			string);
-	});
-var elm$core$String$startsWith = _String_startsWith;
 var elm$url$Url$Http = {$: 'Http'};
 var elm$url$Url$Https = {$: 'Https'};
 var elm$core$String$indexes = _String_indexes;
@@ -11104,7 +11392,6 @@ var elm$core$String$left = F2(
 		return (n < 1) ? '' : A3(elm$core$String$slice, 0, n, string);
 	});
 var elm$core$String$contains = _String_contains;
-var elm$core$String$toInt = _String_toInt;
 var elm$url$Url$Url = F6(
 	function (protocol, host, port_, path, query, fragment) {
 		return {fragment: fragment, host: host, path: path, port_: port_, protocol: protocol, query: query};
