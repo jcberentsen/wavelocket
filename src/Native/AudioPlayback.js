@@ -76,7 +76,7 @@ function fillBuffer(buf, start, len, fromChannelData)
   var nowBuffering = buf.getChannelData(0);
   for (var i = 0; i < len; i++) {
     // audio needs to be in [-1.0; 1.0]
-    nowBuffering[i] = fromChannelData[start + i];
+    nowBuffering[i] = fromChannelData[Math.floor(start + i)];
   }
 }
 
