@@ -61,8 +61,12 @@ function playDecodedAudio(decodedAudio, startSec, lenSec) {
 
     var source = audioCtx.createBufferSource();
     source.connect(audioCtx.destination);
-    start = Math.min( (startSec * decodedAudio.sampleRate), decodedAudio.length);
-    len = Math.min( ( start + lenSec * decodedAudio.sampleRate ), decodedAudio.length - start);
+
+    start = Math.min( startSec * decodedAudio.sampleRate
+                    , decodedAudio.length);
+
+    len = Math.min( lenSec * decodedAudio.sampleRate
+                  , decodedAudio.length - start);
 
     var arrayBuffer = audioCtx.createBuffer(1, len, decodedAudio.sampleRate);
     fillBuffer(arrayBuffer, start, len, decodedAudio.channelData);
