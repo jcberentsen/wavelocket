@@ -50,7 +50,7 @@ port playBuffer : ( AudioInfo, Float, Float ) -> Cmd msg
 port decodeUri : String -> Cmd msg
 
 
-port saveInterval : ( D.Value, Float ) -> Cmd msg
+port saveInterval : ( D.Value, String ) -> Cmd msg
 
 
 
@@ -190,7 +190,7 @@ update msg m =
         Vote answer ->
             ( { m | vote = answer }
             , if answer == No then
-                saveInterval ( m.field, 0 )
+                saveInterval ( m.field, "0" )
 
               else
                 Cmd.none
@@ -204,7 +204,7 @@ update msg m =
         Confirm endsAtSec ->
             ( { m | vote = ConfirmedPositive endsAtSec }
             , Cmd.batch
-                [ saveInterval ( m.field, Math.round (100.0 * endsAtSec) / 100.0 )
+                [ saveInterval ( m.field, Round.round 2 endsAtSec )
                 ]
             )
 
