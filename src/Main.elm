@@ -204,7 +204,7 @@ update msg m =
         Confirm endsAtSec ->
             ( { m | vote = ConfirmedPositive endsAtSec }
             , Cmd.batch
-                [ saveInterval ( m.field, endsAtSec )
+                [ saveInterval ( m.field, Math.round (100.0 * endsAtSec) / 100.0 )
                 ]
             )
 
@@ -248,7 +248,7 @@ play placement =
 
 view model =
     Element.layout [ centerX, width (fill |> minimum 800), height (fill |> minimum 200) ] <|
-        Maybe.withDefault (text "...") <|
+        Maybe.withDefault (text "(preparing audio)") <|
             Maybe.map (viewAudioInfo model) model.audioInfo
 
 
