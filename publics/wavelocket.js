@@ -10984,6 +10984,11 @@ var author$project$Main$viewAudioInfo = F2(
 										label: mdgriffith$elm_ui$Element$text('Play ▶'),
 										onPress: elm$core$Maybe$Just(author$project$Main$PlayFull)
 									})),
+								A2(
+								mdgriffith$elm_ui$Element$el,
+								_List_Nil,
+								mdgriffith$elm_ui$Element$html(
+									A3(author$project$Main$viewWaveform, model.mousePos, model.placement, audioInfo))),
 								model.played ? A2(
 								mdgriffith$elm_ui$Element$row,
 								_List_fromArray(

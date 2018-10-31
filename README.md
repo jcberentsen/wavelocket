@@ -16,3 +16,5 @@ elm --version
 elm make src/Main.elm  --output=publics/wavelocket.js
 ```
 
+## Test run with elm-reactor
+

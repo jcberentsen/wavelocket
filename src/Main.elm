@@ -285,6 +285,7 @@ viewAudioInfo model audioInfo =
                 [ el [ centerX ] <|
                     greenWhiteButton
                         { onPress = Just PlayFull, label = text "Play ▶" }
+                , el [] <| html <| viewWaveform model.mousePos model.placement audioInfo
                 , if model.played then
                     row [ centerX, spacing 12 ]
                         [ greenWhiteButton { onPress = Just <| Vote Yes, label = text "Yes" }
