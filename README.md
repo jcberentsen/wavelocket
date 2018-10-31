@@ -8,13 +8,16 @@ the audio ends.
 ## Compile the Main.elm to javascript
 
 ## Requires elm > 0.19
-```
+```sh
 elm --version
 ```
 
-```
+```sh
 elm make src/Main.elm  --output=publics/wavelocket.js
 ```
 
 ## Test run with elm-reactor
 
+```sh
+elm reactor
+```
