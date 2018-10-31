@@ -11,6 +11,7 @@ the audio ends.
 ```sh
 elm --version
 ```
+## Compile the elm code to javascript
 
 ```sh
 elm make src/Main.elm  --output=publics/wavelocket.js
