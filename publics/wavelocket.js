@@ -4827,10 +4827,10 @@ var author$project$Main$subscriptions = function (_n0) {
 				author$project$Main$audioDecoded(author$project$Main$AudioDecoded)
 			]));
 };
-var author$project$Main$ConfirmedPositive = function (a) {
-	return {$: 'ConfirmedPositive', a: a};
-};
 var author$project$Main$No = {$: 'No'};
+var author$project$Main$Yes = function (a) {
+	return {$: 'Yes', a: a};
+};
 var elm$core$Basics$min = F2(
 	function (x, y) {
 		return (_Utils_cmp(x, y) < 0) ? x : y;
@@ -5355,27 +5355,20 @@ var author$project$Main$update = F2(
 								author$project$Main$clampPos(pos))
 						}),
 					elm$core$Platform$Cmd$none);
-			case 'Vote':
-				var answer = msg.a;
+			case 'VoteNo':
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{vote: answer}),
-					_Utils_eq(answer, author$project$Main$No) ? author$project$Main$saveInterval(
-						_Utils_Tuple2(m.field, '0')) : elm$core$Platform$Cmd$none);
-			case 'Reset':
-				return _Utils_Tuple2(
-					_Utils_update(
-						m,
-						{vote: author$project$Main$Unconfirmed}),
-					elm$core$Platform$Cmd$none);
-			case 'Confirm':
+						{vote: author$project$Main$No}),
+					author$project$Main$saveInterval(
+						_Utils_Tuple2(m.field, '0')));
+			case 'VoteYes':
 				var endsAtSec = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
 						{
-							vote: author$project$Main$ConfirmedPositive(endsAtSec)
+							vote: author$project$Main$Yes(endsAtSec)
 						}),
 					elm$core$Platform$Cmd$batch(
 						_List_fromArray(
@@ -5385,6 +5378,12 @@ var author$project$Main$update = F2(
 									m.field,
 									A2(myrho$elm_round$Round$round, 2, endsAtSec)))
 							])));
+			case 'Reset':
+				return _Utils_Tuple2(
+					_Utils_update(
+						m,
+						{vote: author$project$Main$Unconfirmed}),
+					elm$core$Platform$Cmd$none);
 			default:
 				return _Utils_Tuple2(
 					_Utils_update(
@@ -5393,15 +5392,11 @@ var author$project$Main$update = F2(
 					elm$core$Platform$Cmd$none);
 		}
 	});
-var author$project$Main$Confirm = function (a) {
-	return {$: 'Confirm', a: a};
-};
-var author$project$Main$PlayFull = {$: 'PlayFull'};
 var author$project$Main$Reset = {$: 'Reset'};
-var author$project$Main$Vote = function (a) {
-	return {$: 'Vote', a: a};
+var author$project$Main$VoteNo = {$: 'VoteNo'};
+var author$project$Main$VoteYes = function (a) {
+	return {$: 'VoteYes', a: a};
 };
-var author$project$Main$Yes = {$: 'Yes'};
 var elm$core$Bitwise$shiftLeftBy = _Bitwise_shiftLeftBy;
 var mdgriffith$elm_ui$Internal$Flag$Flag = function (a) {
 	return {$: 'Flag', a: a};
@@ -10803,18 +10798,12 @@ var mdgriffith$elm_ui$Element$el = F2(
 				_List_fromArray(
 					[child])));
 	});
-var mdgriffith$elm_ui$Internal$Model$Fill = function (a) {
-	return {$: 'Fill', a: a};
-};
-var mdgriffith$elm_ui$Element$fill = mdgriffith$elm_ui$Internal$Model$Fill(1);
 var elm$core$Basics$always = F2(
 	function (a, _n0) {
 		return a;
 	});
 var mdgriffith$elm_ui$Internal$Model$unstyled = A2(elm$core$Basics$composeL, mdgriffith$elm_ui$Internal$Model$Unstyled, elm$core$Basics$always);
 var mdgriffith$elm_ui$Element$html = mdgriffith$elm_ui$Internal$Model$unstyled;
-var mdgriffith$elm_ui$Internal$Model$Empty = {$: 'Empty'};
-var mdgriffith$elm_ui$Element$none = mdgriffith$elm_ui$Internal$Model$Empty;
 var mdgriffith$elm_ui$Internal$Model$AsRow = {$: 'AsRow'};
 var mdgriffith$elm_ui$Internal$Model$asRow = mdgriffith$elm_ui$Internal$Model$AsRow;
 var mdgriffith$elm_ui$Element$row = F2(
@@ -10860,8 +10849,6 @@ var mdgriffith$elm_ui$Internal$Model$Text = function (a) {
 var mdgriffith$elm_ui$Element$text = function (content) {
 	return mdgriffith$elm_ui$Internal$Model$Text(content);
 };
-var mdgriffith$elm_ui$Internal$Flag$fontAlignment = mdgriffith$elm_ui$Internal$Flag$flag(12);
-var mdgriffith$elm_ui$Element$Font$center = A2(mdgriffith$elm_ui$Internal$Model$Class, mdgriffith$elm_ui$Internal$Flag$fontAlignment, mdgriffith$elm_ui$Internal$Style$classes.textCenter);
 var author$project$Main$viewAudioInfo = F2(
 	function (model, audioInfo) {
 		return A2(
@@ -10874,74 +10861,6 @@ var author$project$Main$viewAudioInfo = F2(
 			function () {
 				var _n0 = model.vote;
 				switch (_n0.$) {
-					case 'Yes':
-						return _List_fromArray(
-							[
-								A2(
-								mdgriffith$elm_ui$Element$el,
-								_List_Nil,
-								mdgriffith$elm_ui$Element$html(
-									A3(author$project$Main$viewWaveform, model.mousePos, model.placement, audioInfo))),
-								A2(
-								elm$core$Maybe$withDefault,
-								mdgriffith$elm_ui$Element$none,
-								A2(
-									elm$core$Maybe$map,
-									A2(
-										elm$core$Basics$composeR,
-										function ($) {
-											return $.endSec;
-										},
-										A2(
-											elm$core$Basics$composeR,
-											myrho$elm_round$Round$round(2),
-											function (sec) {
-												return A2(
-													mdgriffith$elm_ui$Element$el,
-													_List_fromArray(
-														[
-															mdgriffith$elm_ui$Element$width(mdgriffith$elm_ui$Element$fill),
-															mdgriffith$elm_ui$Element$Font$center
-														]),
-													mdgriffith$elm_ui$Element$text('Phrase end marked at ' + (sec + ' seconds')));
-											})),
-									model.placement)),
-								A2(
-								mdgriffith$elm_ui$Element$row,
-								_List_fromArray(
-									[
-										mdgriffith$elm_ui$Element$centerX,
-										mdgriffith$elm_ui$Element$spacing(12)
-									]),
-								_List_fromArray(
-									[
-										function () {
-										var _n1 = model.placement;
-										if (_n1.$ === 'Just') {
-											var p = _n1.a;
-											return A2(
-												mdgriffith$elm_ui$Element$column,
-												_List_Nil,
-												_List_fromArray(
-													[
-														author$project$Main$greenWhiteButton(
-														{
-															label: mdgriffith$elm_ui$Element$text('Confirm'),
-															onPress: elm$core$Maybe$Just(
-																author$project$Main$Confirm(p.endSec))
-														})
-													]));
-										} else {
-											return mdgriffith$elm_ui$Element$none;
-										}
-									}(),
-										author$project$Main$secondaryButton(
-										{
-											label: mdgriffith$elm_ui$Element$text('Undo'),
-											onPress: elm$core$Maybe$Just(author$project$Main$Reset)
-										})
-									]))
-							]);
 					case 'No':
 						return _List_fromArray(
 							[
@@ -10956,7 +10875,7 @@ var author$project$Main$viewAudioInfo = F2(
 										onPress: elm$core$Maybe$Just(author$project$Main$Reset)
 									}))
 							]);
-					case 'ConfirmedPositive':
+					case 'Yes':
 						var sec = _n0.a;
 						return _List_fromArray(
 							[
@@ -10977,44 +10896,90 @@ var author$project$Main$viewAudioInfo = F2(
 							[
 								A2(
 								mdgriffith$elm_ui$Element$el,
-								_List_fromArray(
-									[mdgriffith$elm_ui$Element$centerX]),
-								author$project$Main$greenWhiteButton(
-									{
-										label: mdgriffith$elm_ui$Element$text('Play ▶'),
-										onPress: elm$core$Maybe$Just(author$project$Main$PlayFull)
-									})),
-								A2(
-								mdgriffith$elm_ui$Element$el,
 								_List_Nil,
 								mdgriffith$elm_ui$Element$html(
 									A3(author$project$Main$viewWaveform, model.mousePos, model.placement, audioInfo))),
-								model.played ? A2(
-								mdgriffith$elm_ui$Element$row,
-								_List_fromArray(
-									[
-										mdgriffith$elm_ui$Element$centerX,
-										mdgriffith$elm_ui$Element$spacing(12)
-									]),
-								_List_fromArray(
-									[
-										author$project$Main$greenWhiteButton(
-										{
-											label: mdgriffith$elm_ui$Element$text('Yes'),
-											onPress: elm$core$Maybe$Just(
-												author$project$Main$Vote(author$project$Main$Yes))
-										}),
-										author$project$Main$greenWhiteButton(
-										{
-											label: mdgriffith$elm_ui$Element$text('No'),
-											onPress: elm$core$Maybe$Just(
-												author$project$Main$Vote(author$project$Main$No))
-										})
-									])) : mdgriffith$elm_ui$Element$none
+								function () {
+								var _n1 = model.placement;
+								if (_n1.$ === 'Just') {
+									var p = _n1.a;
+									return A2(
+										mdgriffith$elm_ui$Element$column,
+										_List_fromArray(
+											[mdgriffith$elm_ui$Element$centerX]),
+										_List_fromArray(
+											[
+												mdgriffith$elm_ui$Element$text(
+												'End marker at ' + (A2(myrho$elm_round$Round$round, 2, p.endSec) + ' seconds')),
+												A2(
+												mdgriffith$elm_ui$Element$row,
+												_List_fromArray(
+													[
+														mdgriffith$elm_ui$Element$centerX,
+														mdgriffith$elm_ui$Element$spacing(12)
+													]),
+												_List_fromArray(
+													[
+														author$project$Main$greenWhiteButton(
+														{
+															label: mdgriffith$elm_ui$Element$text('Yes'),
+															onPress: elm$core$Maybe$Just(
+																author$project$Main$VoteYes(p.endSec))
+														}),
+														author$project$Main$greenWhiteButton(
+														{
+															label: mdgriffith$elm_ui$Element$text('No'),
+															onPress: elm$core$Maybe$Just(author$project$Main$VoteNo)
+														})
+													]))
+											]));
+								} else {
+									return A2(
+										mdgriffith$elm_ui$Element$column,
+										_List_fromArray(
+											[mdgriffith$elm_ui$Element$centerX]),
+										_List_fromArray(
+											[
+												mdgriffith$elm_ui$Element$text('Click on the waveform above to play the audio'),
+												A2(
+												mdgriffith$elm_ui$Element$row,
+												_List_fromArray(
+													[
+														mdgriffith$elm_ui$Element$centerX,
+														mdgriffith$elm_ui$Element$spacing(12)
+													]),
+												_List_fromArray(
+													[
+														author$project$Main$greenWhiteButton(
+														{
+															label: mdgriffith$elm_ui$Element$text('Yes'),
+															onPress: elm$core$Maybe$Nothing
+														}),
+														author$project$Main$greenWhiteButton(
+														{
+															label: mdgriffith$elm_ui$Element$text('No'),
+															onPress: elm$core$Maybe$Nothing
+														})
+													]))
+											]));
+								}
+							}()
 							]);
 				}
 			}());
 	});
+var author$project$Main$waiting = A2(
+	mdgriffith$elm_ui$Element$column,
+	_List_fromArray(
+		[mdgriffith$elm_ui$Element$centerX]),
+	_List_fromArray(
+		[
+			mdgriffith$elm_ui$Element$text('(preparing audio)')
+		]));
+var mdgriffith$elm_ui$Internal$Model$Fill = function (a) {
+	return {$: 'Fill', a: a};
+};
+var mdgriffith$elm_ui$Element$fill = mdgriffith$elm_ui$Internal$Model$Fill(1);
 var mdgriffith$elm_ui$Internal$Model$OnlyDynamic = F2(
 	function (a, b) {
 		return {$: 'OnlyDynamic', a: a, b: b};
@@ -11285,7 +11250,7 @@ var author$project$Main$view = function (model) {
 			]),
 		A2(
 			elm$core$Maybe$withDefault,
-			mdgriffith$elm_ui$Element$text('(preparing audio)'),
+			author$project$Main$waiting,
 			A2(
 				elm$core$Maybe$map,
 				author$project$Main$viewAudioInfo(model),
