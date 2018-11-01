@@ -78,8 +78,7 @@ decodeAudioInfo =
 
 type Answer
     = Unconfirmed
-    | Yes
-    | ConfirmedPositive Float
+    | Yes Float
     | No
 
 
@@ -142,8 +141,8 @@ type Msg
     | PlayInterval AudioInfo MousePos
     | PlayFull
     | Move MousePos
-    | Vote Answer
-    | Confirm Float
+    | VoteYes Float
+    | VoteNo
     | Reset
     | Leave
 
@@ -187,25 +186,21 @@ update msg m =
             , Cmd.none
             )
 
-        Vote answer ->
-            ( { m | vote = answer }
-            , if answer == No then
-                saveInterval ( m.field, "0" )
+        VoteNo ->
+            ( { m | vote = No }
+            , saveInterval ( m.field, "0" )
+            )
 
-              else
-                Cmd.none
+        VoteYes endsAtSec ->
+            ( { m | vote = Yes endsAtSec }
+            , Cmd.batch
+                [ saveInterval ( m.field, Round.round 2 endsAtSec )
+                ]
             )
 
         Reset ->
             ( { m | vote = Unconfirmed }
             , Cmd.none
-            )
-
-        Confirm endsAtSec ->
-            ( { m | vote = ConfirmedPositive endsAtSec }
-            , Cmd.batch
-                [ saveInterval ( m.field, Round.round 2 endsAtSec )
-                ]
             )
 
         Leave ->
@@ -248,52 +243,52 @@ play placement =
 
 view model =
     Element.layout [ centerX, width (fill |> minimum 800), height (fill |> minimum 200) ] <|
-        Maybe.withDefault (text "(preparing audio)") <|
+        Maybe.withDefault waiting <|
             Maybe.map (viewAudioInfo model) model.audioInfo
+
+
+waiting =
+    column [ centerX ] [ text "(preparing audio)" ]
 
 
 viewAudioInfo : Model -> AudioInfo -> Element Msg
 viewAudioInfo model audioInfo =
     column [ centerX, spacing 12 ] <|
         case model.vote of
-            Yes ->
-                [ el [] <| html <| viewWaveform model.mousePos model.placement audioInfo
-                , Maybe.map (.endSec >> Round.round 2 >> (\sec -> el [ width fill, Font.center ] <| text ("Phrase end marked at " ++ sec ++ " seconds"))) model.placement |> Maybe.withDefault none
-                , row [ centerX, spacing 12 ]
-                    [ case model.placement of
-                        Just p ->
-                            column []
-                                [ greenWhiteButton { onPress = Just (Confirm p.endSec), label = text "Confirm" } ]
-
-                        _ ->
-                            Element.none
-                    , secondaryButton { onPress = Just Reset, label = text "Undo" }
-                    ]
-                ]
-
             No ->
                 [ text "No audible key phrase"
                 , el [ centerX ] <| secondaryButton { onPress = Just Reset, label = text "Undo" }
                 ]
 
-            ConfirmedPositive sec ->
+            Yes sec ->
                 [ text <| "Key phrase ending after " ++ Round.round 2 sec ++ " seconds"
                 , el [ centerX ] <| secondaryButton { onPress = Just Reset, label = text "Undo" }
                 ]
 
             Unconfirmed ->
-                [ el [ centerX ] <|
-                    greenWhiteButton
-                        { onPress = Just PlayFull, label = text "Play ▶" }
-                , el [] <| html <| viewWaveform model.mousePos model.placement audioInfo
-                , if model.played then
-                    row [ centerX, spacing 12 ]
-                        [ greenWhiteButton { onPress = Just <| Vote Yes, label = text "Yes" }
-                        , greenWhiteButton { onPress = Just <| Vote No, label = text "No" }
-                        ]
+                [ el [] <| html <| viewWaveform model.mousePos model.placement audioInfo
+                , case model.placement of
+                    Just p ->
+                        column [ centerX ]
+                            [ text <|
+                                "End marker at "
+                                    ++ Round.round 2 p.endSec
+                                    ++ " seconds"
+                            , row
+                                [ centerX, spacing 12 ]
+                                [ greenWhiteButton { onPress = Just <| VoteYes p.endSec, label = text "Yes" }
+                                , greenWhiteButton { onPress = Just <| VoteNo, label = text "No" }
+                                ]
+                            ]
 
-                  else
-                    none
+                    _ ->
+                        column [ centerX ]
+                            [ text "Click on the waveform above to play the audio"
+                            , row [ centerX, spacing 12 ]
+                                [ greenWhiteButton { onPress = Nothing, label = text "Yes" }
+                                , greenWhiteButton { onPress = Nothing, label = text "No" }
+                                ]
+                            ]
                 ]
 
 
